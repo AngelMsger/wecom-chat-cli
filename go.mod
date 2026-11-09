@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.27.3
 
 require (
-	github.com/angelmsger/agent-cli-kit v0.8.1
+	github.com/angelmsger/agent-cli-kit v0.9.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/cobra v1.10.2
 	github.com/yuin/goldmark v1.7.17
