@@ -12,7 +12,7 @@ Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and 
 | Separate OS identity fixture (`make isolation-check`) | Passed on Linux amd64 |
 | Generated command reference repeatability (`make docs-check`) | Passed |
 | Native binary build (`make build`) | Passed |
-| Linux/macOS amd64/arm64 cross-builds | All four passed; macOS native execution awaits CI |
+| Linux/macOS amd64/arm64 cross-builds | All four passed; native Linux/macOS CI also passed |
 | Dependency vulnerability scan (`make vuln`) | No vulnerabilities found after updating x/sys to v0.44.0 |
 | npm checksum/platform/destination tests | All 3 passed |
 | Release and repository setup contract tests | All 15 passed using local substitutes |
@@ -43,6 +43,25 @@ The worker reaches its agent socket while operator
 socket access, private state/secret reads and policy writes fail. Its effective
 Linux capabilities are zero and outbound network is unavailable. This proves the
 fixture's boundary, not the isolation of an unrelated grok bot deployment.
+
+## GitHub verification
+
+The initial source and infrastructure commit `8aedba8` was pushed to
+[AngelMsger/wecom-chat-cli](https://github.com/AngelMsger/wecom-chat-cli).
+[CI run 42591343191](https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42591343191)
+passed all three required jobs on 2026-11-09: `test (ubuntu-latest)`,
+`test (macos-latest)` and `isolation`. This includes native macOS tests, compiled
+CLI/socket scenarios, generated site checks, npm installer checks and vulnerability
+scans; the Linux isolation job also builds all four platform artifacts.
+
+The first [Pages run](https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42591343348)
+passed documentation/site checks but failed at `actions/configure-pages` because
+Pages had not been enabled. At bootstrap the repository was private, and the
+connected integration returned HTTP 403 for administration operations. This is
+not a successful public website deployment. The repository owner must resolve
+visibility/Pages settings and verify a subsequent deployment. See the
+[setup script and release guide](releasing.md#repository-bootstrap) for the
+remaining repository settings; no release tag or npm version was published.
 
 ## Managed-environment test runner
 
@@ -86,9 +105,9 @@ as an ordinary user; it never silently reports an unexecuted check as passed.
 - The trustworthiness of an external automated reviewer or its credentials.
 - Long-term ledger archival/compaction and high-volume durability/performance.
 - Production systemd installation, private WeCom deployments, Windows sockets,
-  macOS native execution, registry publication or a versioned release. The
+  registry publication or a versioned release. The
   cross-build/checksum/npm pipeline is prepared and tested locally.
 
-The source remains a prerelease. Remote CI, Pages deployment and repository
-settings must be verified after the first push; local checks do not attest them. The hard event cap and explicit coverage
+The source remains a prerelease. CI is verified above; public Pages deployment
+and repository administration settings remain separate acceptance items. The hard event cap and explicit coverage
 gaps must remain visible until a production retention/operations design is added.
