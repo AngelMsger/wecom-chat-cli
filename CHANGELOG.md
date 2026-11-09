@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Adopt agent-cli-kit v0.9.0 after reviewing Dependabot PR #1 and validating the
+  pinned dependency. Its changed HTTP redirect/doctor path is not used by Chat's
+  dedicated WebSocket and Unix-socket transports.
+- Align the public README with the CLI family: product poster, badges, features,
+  official-CLI positioning, installation, quick start, commands, output/error
+  contracts, Skill, development, documentation, related tools and license.
+- Publish the GitHub Pages documentation site and add the product poster to the
+  generated operator guide and site share metadata. No binary/npm release is implied.
+
 - Pin the family Go 1.27.3 toolchain and update x/sys to v0.44.0, removing a
   Windows-only module advisory even though Windows is not a supported target.
 - Add public-repository bootstrap, Linux/macOS CI, isolated Linux checks, Pages,

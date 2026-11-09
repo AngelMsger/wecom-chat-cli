@@ -38,6 +38,12 @@ owns admission and socket roles; `tasks.go` owns capability/review enforcement.
 small WebSocket subset; `pkg/safejson` rejects ambiguous/deep/invalid JSON.
 Filesystem/JSON helpers retain the Channel CLI's MIT attribution.
 
+The shared kit is pinned to v0.9.0. Its changed HTTP redirect/doctor path is not
+used by this product: upstream intake uses the dedicated WebSocket client, and
+local Unix-socket requests explicitly refuse redirects. Chat imports the kit's
+errors, output and argv normalization. The dependency upgrade was validated with
+`GOWORK=off` race/CLI tests and vulnerability scanning.
+
 ## Transport
 
 The endpoint is fixed, with TLS verification and configured HTTP proxy settings.

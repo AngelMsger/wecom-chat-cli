@@ -13,7 +13,7 @@ Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and 
 | Generated command reference repeatability (`make docs-check`) | Passed |
 | Native binary build (`make build`) | Passed |
 | Linux/macOS amd64/arm64 cross-builds | All four passed; native Linux/macOS CI also passed |
-| Dependency vulnerability scan (`make vuln`) | No vulnerabilities found after updating x/sys to v0.44.0 |
+| Dependency vulnerability scan (`make vuln`) | No vulnerabilities found with agent-cli-kit v0.9.0 and x/sys v0.44.0 |
 | npm checksum/platform/destination tests | All 3 passed |
 | Release and repository setup contract tests | All 15 passed using local substitutes |
 | Site links and generated narrative HTML | 9 pages passed; no broken local anchors/assets |
@@ -54,14 +54,25 @@ passed all three required jobs on 2026-11-09: `test (ubuntu-latest)`,
 CLI/socket scenarios, generated site checks, npm installer checks and vulnerability
 scans; the Linux isolation job also builds all four platform artifacts.
 
-The first [Pages run](https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42591343348)
-passed documentation/site checks but failed at `actions/configure-pages` because
-Pages had not been enabled. At bootstrap the repository was private, and the
-connected integration returned HTTP 403 for administration operations. This is
-not a successful public website deployment. The repository owner must resolve
-visibility/Pages settings and verify a subsequent deployment. See the
-[setup script and release guide](releasing.md#repository-bootstrap) for the
-remaining repository settings; no release tag or npm version was published.
+[Dependabot PR #1](https://github.com/AngelMsger/wecom-chat-cli/pull/1) updates
+`agent-cli-kit` from v0.8.1 to v0.9.0. This is a routine dependency update, not a
+reported security advisory. The changed kit HTTP transport/doctor path is not
+used by Chat. Pinned-module race tests, CLI end-to-end tests, builds, generated
+documentation and vulnerability scanning passed before merging. The resulting
+main commit `eb1c459` passed all three jobs in
+[CI run 42594589681](https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42594589681).
+
+The repository is now public, and the owner has enabled GitHub Actions as the
+Pages source. [Pages run 42594589654](https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42594589654)
+successfully deployed the site; the public
+[documentation URL](https://angelmsger.github.io/wecom-chat-cli/) returned HTTP 200
+on 2026-11-09. The bootstrap failure caused by disabled Pages is resolved.
+
+The connected integration still cannot manage repository administration settings
+(GitHub HTTP 403). Branch protection and other administration settings are not
+certified by these CI/Pages results. See the
+[setup script and release guide](releasing.md#repository-bootstrap) for that
+separate owner setup. No release tag or npm version was published.
 
 ## Managed-environment test runner
 
@@ -108,6 +119,7 @@ as an ordinary user; it never silently reports an unexecuted check as passed.
   registry publication or a versioned release. The
   cross-build/checksum/npm pipeline is prepared and tested locally.
 
-The source remains a prerelease. CI is verified above; public Pages deployment
-and repository administration settings remain separate acceptance items. The hard event cap and explicit coverage
-gaps must remain visible until a production retention/operations design is added.
+The source remains a prerelease. CI and public Pages deployment are verified
+above; repository administration and live deployment remain separate acceptance
+items. The hard event cap and explicit coverage gaps must remain visible until a
+production retention/operations design is added.

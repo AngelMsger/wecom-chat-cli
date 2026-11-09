@@ -123,6 +123,12 @@ func run() error {
 		if err != nil {
 			return err
 		}
+		// GitHub badges are useful on the repository front page. Keep the static
+		// documentation independent of remote image services.
+		if p.source == "README.md" {
+			badges := regexp.MustCompile(`(?s)<!-- readme-badges:start -->.*?<!-- readme-badges:end -->`)
+			src = badges.ReplaceAll(src, nil)
+		}
 		var rendered bytes.Buffer
 		if err = renderer.Convert(src, &rendered); err != nil {
 			return err
@@ -170,5 +176,5 @@ func shell(title, base, current, body string) []byte {
 		}
 		fmt.Fprintf(&nav, `<a href="%s%s"%s>%s</a>`, base, p[0], selected, p[1])
 	}
-	return []byte(fmt.Sprintf(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="%s for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>%s — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/%s"><link rel="icon" href="%sassets/mark.svg"><link rel="stylesheet" href="%sassets/site.css"><script src="%sassets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="%sindex.html"><img src="%sassets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="%shost-integration.html">Integration</a><a href="%sindex.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span>%s</aside><article class="doc-article">%s</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="%sindex.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>`, html.EscapeString(title), html.EscapeString(title), current, base, base, base, base, base, base, base, nav.String(), body, base))
+	return []byte(fmt.Sprintf(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="%s for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><meta property="og:image" content="https://angelmsger.github.io/wecom-chat-cli/image.png"><meta name="twitter:card" content="summary_large_image"><title>%s — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/%s"><link rel="icon" href="%sassets/mark.svg"><link rel="stylesheet" href="%sassets/site.css"><script src="%sassets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="%sindex.html"><img src="%sassets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="%shost-integration.html">Integration</a><a href="%sindex.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span>%s</aside><article class="doc-article">%s</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="%sindex.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>`, html.EscapeString(title), html.EscapeString(title), current, base, base, base, base, base, base, base, nav.String(), body, base))
 }

@@ -19,3 +19,13 @@ Check desktop and mobile widths, keyboard focus, the copy button, task scenarios
 command search and browser errors before publishing a layout change. The
 prerelease banner and source-build instructions remain until a release actually
 exists. Do not imply that prompt-injection screening guarantees safe answers.
+
+## Repository presentation
+
+The README follows Calendar/Channel's public project structure and uses the
+canonical product poster at `docs/image.png`; its generation prompt is recorded
+in [image-prompt.md](image-prompt.md). The poster is illustrative and retains the
+same slogan, blue/cyan palette and independent-project attribution as the site.
+GitHub-only badges are enclosed by `readme-badges` markers; the HTML generator
+omits that block so the website needs no remote image services. The poster itself
+is local, responsive, and also supplies the site's social share image.
