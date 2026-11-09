@@ -1,0 +1,33 @@
+[Unit]
+Description=WeCom Chat isolated smart-bot broker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wecom-chat
+Group=wecom-chat-agents
+EnvironmentFile=/etc/wecom-chat/secrets.env
+ExecStart=/usr/local/bin/wecom-chat-cli broker serve --policy /etc/wecom-chat/broker.json
+Restart=no
+UMask=0077
+StateDirectory=wecom-chat
+StateDirectoryMode=0700
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/wecom-chat /run/wecom-chat-agent /run/wecom-chat-operator
+MemoryMax=256M
+TasksMax=64
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

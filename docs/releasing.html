@@ -1,0 +1,166 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Release guide for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Release guide — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/releasing.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html" aria-current="page">Release guide</a></aside><article class="doc-article"><h1 id="repository-website-and-releases">Repository, website and releases</h1>
+<p>WeCom Chat CLI follows the WeCom Calendar and Channel repository infrastructure:
+GitHub Actions validates changes, Pages serves <code>docs/</code>, and a maintainer's version
+tag triggers native binaries, checksums and npm OIDC publication.</p>
+<p>The source is <strong>0.2.0-dev</strong>. No version tag, GitHub Release or npm package has been
+published. Repository and Pages setup are distinct from releasing a binary.</p>
+<h2 id="repository-bootstrap">Repository bootstrap</h2>
+<p>The intended public repository is <code>AngelMsger/wecom-chat-cli</code>; the documentation
+URL is <code>https://angelmsger.github.io/wecom-chat-cli/</code>. The bootstrap script uses the
+active <code>gh</code> identity and never reads or prints a token:</p>
+<pre><code class="language-sh">python3 scripts/setup-github.py --dry-run
+python3 scripts/setup-github.py --apply
+</code></pre>
+<p>Run the apply command from a clean, committed <code>main</code> with credentials authorized
+to create/manage this repository, push workflows and enable Pages. It creates the
+repository if absent, verifies its public identity, sets only this checkout's
+origin, pushes main without force, enables Actions-based Pages, configures
+metadata/private vulnerability reporting and protects main. It never creates a
+tag, publishes npm or modifies a sibling repository. A rerun resumes configuration;
+errors are surfaced rather than treated as success.</p>
+<p>The required checks are <code>test (ubuntu-latest)</code>, <code>test (macos-latest)</code> and
+<code>isolation</code>. Protection applies to administrators; force pushes and deletion are
+disabled, and changes after bootstrap use pull requests. No reviewer count is
+required, but conversations must be resolved. Release publication has no additional
+environment approval gate. Verify the configuration and actual CI/Pages runs
+before describing the remote setup as complete.</p>
+<p>If GitHub returns <code>403 Resource not accessible by integration</code>, the connected
+integration lacks the required administration capability. Create the empty public
+repository and grant the integration access, or supply suitable credentials using
+the environment's protected settings. Never paste credentials into issues or chat.
+A repository with only Contents permission still cannot configure Pages/protection.</p>
+<h2 id="continuous-integration-and-website">Continuous integration and website</h2>
+<p><code>ci.yml</code> runs formatting, vet, race tests, compiled CLI/socket tests, build,
+deterministic documentation checks, static site links, release contract tests,
+npm installer tests and vulnerability scanning on Linux and macOS. The Linux
+<code>isolation</code> job cross-builds four targets and runs the distinct-UID fixture in a
+network-disabled pinned container. All fixtures use synthetic conversations.</p>
+<p><code>pages.yml</code> checks generated documentation and links, uploads <code>docs/</code>, then uses
+GitHub's official Pages deployment action on relevant main changes or a manual
+workflow dispatch. Set Pages <strong>Source: GitHub Actions</strong>. The site needs no runtime
+backend, CDN, external font, npm dependency or secret. Keep Markdown canonical and
+run <code>make docs</code> after command or narrative changes. The old per-command Markdown
+paths remain available alongside the searchable HTML reference.</p>
+<p>Dependabot follows Calendar's policy: track released <code>agent-cli-kit</code> versions;
+review other dependency upgrades explicitly. No local <code>replace</code> or workspace
+module override may reach a release.</p>
+<h2 id="release-preparation">Release preparation</h2>
+<ol>
+<li>Run the validation below with <code>GOWORK=off</code>. Confirm CI and Pages status.</li>
+<li>Resolve vulnerabilities and review the deployment/acceptance limitations.</li>
+<li>Set <code>build/npm/package.json</code> to the intended semantic version. Update the
+changelog, site/package release status and companion Skill if its content changed.</li>
+<li>Merge the prepared changes through a pull request. A maintainer can then push
+the intended <code>vMAJOR.MINOR.PATCH</code> tag from that clean main commit.</li>
+</ol>
+<p>Do not create a tag merely to test the pipeline. A version-tag push authorizes
+publication automatically; there is no separate release approval click.
+The binaries receive version, commit and build time via <code>pkg/constants</code> and ldflags.
+<code>wecom-chat-cli version</code> reports that metadata as JSON.</p>
+<h2 id="npm-setup-before-the-first-release">npm setup before the first release</h2>
+<p>The package is <code>@angelmsger/wecom-chat-cli</code>. The registry package and its trusted
+publisher must be provisioned before expecting automatic publication to succeed.
+This cannot be configured by a GitHub repository workflow alone. Follow
+<a href="https://docs.npmjs.com/trusted-publishers/">npm's trusted-publisher guidance</a>.
+If the package does not exist, its owner must perform the initial authorized
+publication/bootstrap through npm before configuring the package publisher.</p>
+<table>
+<thead>
+<tr>
+<th>Trusted publisher field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Organization or user</td>
+<td><code>AngelMsger</code></td>
+</tr>
+<tr>
+<td>Repository</td>
+<td><code>wecom-chat-cli</code></td>
+</tr>
+<tr>
+<td>Workflow filename</td>
+<td><code>release.yml</code></td>
+</tr>
+<tr>
+<td>Environment</td>
+<td>Leave blank, matching Calendar</td>
+</tr>
+</tbody>
+</table>
+<p>The workflow grants <code>id-token: write</code>, uses Node 24's bundled npm, and supplies no
+registry token or <code>registry-url</code>. Do not add a long-lived token or a custom
+publisher. The repository URL's <code>AngelMsger</code> casing must match provenance.
+Unlike Channel, Chat has no previously bound <code>release</code> environment to preserve.</p>
+<h2 id="pipeline-and-artifact-contract">Pipeline and artifact contract</h2>
+<p>A <code>v*</code> tag runs checks, cross-compiles, generates SHA-256 checksums, creates or
+refreshes the GitHub Release, and publishes the npm wrapper. It copies the license
+and matching companion Skill into the package. npm is skipped if the exact version
+already exists. The GitHub Release remains available if npm configuration fails.</p>
+<p>The stable assets are:</p>
+<pre><code class="language-text">wecom-chat-cli-darwin-amd64
+wecom-chat-cli-darwin-arm64
+wecom-chat-cli-linux-amd64
+wecom-chat-cli-linux-arm64
+checksums.txt
+</code></pre>
+<p>The installer downloads from
+<code>https://github.com/AngelMsger/wecom-chat-cli/releases/download/v&lt;version&gt;/&lt;asset&gt;</code>.
+Missing, duplicate or mismatched checksums fail installation. Only HTTPS GitHub
+asset hosts are accepted, with size/time/redirect limits. Runtime agent commands
+never trigger an implicit download. Windows is excluded because this broker
+requires Unix sockets and Unix filesystem security.</p>
+<p>Reruns refresh GitHub assets and skip existing npm versions, following the family
+pipeline. Inspect the source and partial outcome first; never move a published tag
+or assume an npm version can be overwritten. The local release tests execute these
+shell steps with substitutes for <code>gh</code>, npm and the compiler; they never publish.</p>
+<h2 id="validation">Validation</h2>
+<pre><code class="language-sh">GOWORK=off make lint test e2e build docs-check site-check release-tests
+npm test --prefix build/npm
+GOWORK=off make vuln cross
+# Disposable network-disabled root setup; see verification.md for the image.
+WECOM_CHAT_TEST_ROOT=1 GOFLAGS=&quot;-exec=$PWD/scripts/container-exec.sh&quot; make isolation-check
+</code></pre>
+<p>The generic <a href="host-integration.html">host integration</a> still requires a real host
+adapter, sandbox, per-session memory and independent reviewer. Publishing code,
+packages or a website does not certify a live WeCom deployment.</p>
+<h2 id="family-alignment">Family alignment</h2>
+<table>
+<thead>
+<tr>
+<th>Reference</th>
+<th>Reused pattern</th>
+<th>Intentional difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WeCom Calendar</td>
+<td>Public GitHub repo, Pages, kit-only Dependabot, tag → binaries/checksums → npm OIDC</td>
+<td>Chat is Unix-only and requires task capabilities</td>
+</tr>
+<tr>
+<td>WeCom Channel</td>
+<td>Linux/macOS CI, Linux isolation, Markdown-to-HTML site, checksum-required installer, release contract tests</td>
+<td>Smart-bot WebSocket tasks; no Channel contexts or reaction commands</td>
+</tr>
+<tr>
+<td>Bitbucket, Confluence, Jenkins, Jira, OpenObserve</td>
+<td>Same native build and tag-driven release pipeline</td>
+<td>No changes to those repositories</td>
+</tr>
+<tr>
+<td>Prometheus</td>
+<td>Same common release flow</td>
+<td>Its extra duplicate-publication error parser is not copied</td>
+</tr>
+<tr>
+<td>agent-cli-kit</td>
+<td>Published pinned module for shared CLI behavior</td>
+<td>No kit changes or release requested</td>
+</tr>
+</tbody>
+</table>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

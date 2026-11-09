@@ -1,0 +1,170 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Technical design for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Technical design — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/technical-design.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html" aria-current="page">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="technical-design">Technical design</h1>
+<p>Version 2 moves task targeting and send authorization out of the conversation model.
+The default policy must remain safe when a worker obeys an injected instruction.</p>
+<h2 id="boundaries-and-roles">Boundaries and roles</h2>
+<pre><code class="language-mermaid">flowchart LR
+  W[WeCom smart-bot WebSocket] --&gt; B[Credential-holding broker]
+  B --&gt; L[Private ledger]
+  O[Trusted supervisor and reviewer] --&gt;|Operator socket: inbox and grants| B
+  O --&gt;|One short-lived grant| A[Isolated conversation worker]
+  A --&gt;|Worker socket: task read, draft, risk report| B
+  O --&gt;|Exact draft digest approval| B
+  B --&gt;|Original callback only| W
+</code></pre>
+<p>The agent socket is a capability-authenticated worker interface. It does not expose
+a general inbox, even to a worker presenting a valid grant. The operator socket is
+OS-protected and belongs only to trusted supervisor/reviewer code or a human, not
+an LLM worker. Tokens cannot select operator authority, and operator requests cannot
+impersonate a worker operation. The host must still isolate tools, memory and data.</p>
+<p>One bot/deployment has a private ledger and two sockets. A single broker can issue
+many event-scoped grants without sharing their data. The trusted broker/operator
+remain trusted across all those tasks. Never run competing subscribers to one bot
+expecting horizontal scaling; upstream displacement stops this service.</p>
+<h2 id="packages">Packages</h2>
+<p><code>cmd</code> contains the executable and deterministic doc generator. <code>internal/app</code>
+wires Cobra, kit output/errors/argv handling and environment-only task credentials.
+<code>internal/config</code> validates strict version 2 operator policy. <code>internal/broker</code>
+owns admission and socket roles; <code>tasks.go</code> owns capability/review enforcement.
+<code>internal/state</code> owns the locked atomic ledger and schema migration;
+<code>internal/securefs</code> checks every trusted path ancestor. <code>pkg/aibot</code> implements the
+small WebSocket subset; <code>pkg/safejson</code> rejects ambiguous/deep/invalid JSON.
+Filesystem/JSON helpers retain the Channel CLI's MIT attribution.</p>
+<h2 id="transport">Transport</h2>
+<p>The endpoint is fixed, with TLS verification and configured HTTP proxy settings.
+Credentials are sent after a successful WebSocket handshake. Subscription requires
+an exact request ID and explicit success code. Frames are limited to 64 KiB; a
+single reader dispatches callbacks through a bounded 128-record queue and routes
+acknowledgements to exact pending request IDs. Writes serialize.</p>
+<p>JSON heartbeats run every 30 seconds with a five-second acknowledgement deadline.
+Transient transport loss reconnects with jittered exponential backoff below 60
+seconds. Authentication rejection, displacement, failed durable intake or queue
+exhaustion stops the service. Shutdown waits for connection work before releasing
+the state lock. No automatic supervisor restart should undo a displacement stop.
+No upstream error bodies, URLs, headers or credentials appear in diagnostics.</p>
+<p>Only live callbacks are observed. Disconnection is a coverage gap, not guaranteed
+upstream replay. Replies are single final stream frames. The 120-second default
+reply TTL is local policy, not an assertion about the upstream validity window.
+A shorter upstream window may reject a reply. Accurate host time is required.</p>
+<h2 id="admission-sessions-and-sequencing">Admission, sessions and sequencing</h2>
+<p>Validate bot/message/sender/conversation identity, require allowlisted senders and
+additional group admission, then deduplicate by bot/message ID. Keep the first
+payload, callback request ID and connection generation immutable. Suppress blocked
+users, unsupported quotes/media, oversized messages and excess per-user traffic.
+Heuristic screening detects conspicuous injection/credential/destructive patterns;
+it never labels passing text trusted or grants capabilities.</p>
+<p>Only admitted text is stored raw. Suppressed/quarantined content keeps its digest
+and fixed reason codes. Each accepted record gets a monotonic sequence. Its stable
+session key hashes deployment/bot/chat type/chat ID/sender. The ledger also binds
+its session epoch, initialized to one. Admission and its epoch are one transaction;
+long-poll readers wake only after the commit.</p>
+<p>An operator reset requires an event identifying the session and the expected
+current epoch. A successful increment invalidates all old grants and proposals.
+A duplicate reset with the old expected epoch conflicts instead of incrementing
+again. Future incoming events carry the new epoch. Host model histories must use
+<code>(session_key, session_epoch)</code>; the broker cannot erase another system's memory.</p>
+<p>Issuance serializes active work within a session. A newer event cannot be issued
+while older work is live and unfinished. Once a newer event has a task, older
+unassigned events cannot be issued in that epoch. Rejection, revoke, expiry or a
+terminal send or risk report releases serialization. Different sessions can progress
+concurrently.</p>
+<h2 id="local-protocol">Local protocol</h2>
+<p>HTTP over Unix socket, <code>POST /v1/request</code>, maximum 32 KiB, eight concurrent requests
+per listener. Every request requires the expected bot/deployment. Unknown JSON
+fields, duplicate keys and fields unrelated to the selected operation fail, even
+on dry-run. Neither URL parameters nor request bodies can select authority.</p>
+<p>Worker-only operations are <code>task.get</code>, <code>reply.propose</code>, <code>memory.report</code>.
+Operator-only operations are <code>status</code>, <code>event.list/get</code>, <code>task.issue/revoke</code>,
+<code>session.reset</code>, <code>reply.get/approve/reject</code>, <code>memory.list/set</code>.
+Direct send and model-controlled quarantine have no API/CLI compatibility aliases.</p>
+<p>The operator inbox uses limits 1..100 and waits 0..25 seconds. CLI watch repeats
+local long polls within explicit count/deadline bounds; it never polls WeCom.
+Cursors bind ledger ID, policy digest and sequence. They are checkpoints, not
+credentials. Default reads omit suppressed/blocked records; <code>--include-suppressed</code>
+allows operator inspection of redacted metadata. <code>event.get</code> is an operator audit
+read. Expired raw text is hidden even before physical maintenance erasure.</p>
+<p>Hosts must durably enqueue/deduplicate and maintain their own execution checkpoint.
+A watch cursor acknowledges emitted data, not successful model execution. Already
+read content cannot be recalled by later revocation. Supervisors must not attach
+inbox content to an administrator model conversation or auto-approve model output.</p>
+<h2 id="task-capabilities">Task capabilities</h2>
+<p>Only the operator issues a task for a live admitted event. A token combines an
+opaque event locator and 256 random secret bits; only its hash is persisted. The
+authorization comparison is constant-time. The token is returned once in the
+operator issue response and never in task reads, errors, audit views or logs.</p>
+<p>The CLI obtains <code>WECOM_CHAT_TASK_TOKEN</code> only for worker operations and sends it in
+the Authorization header. There is no token argv flag or JSON token field. A grant
+binds the original event, sender/conversation, epoch, policy digest, current broker
+instance, WebSocket generation and deadline (at most the event's reply expiry).
+Checks run on every task read, proposal, report and pre-send validation.</p>
+<p>The worker never chooses a target. Extra event/user/epoch/digest fields are rejected
+on worker operations. Its task view contains only its event, mode, template IDs and
+safe task metadata. Knowing another event ID, cursor or session hash grants nothing.
+Workers must not share token environments or files; bearer theft still authorizes
+the stolen task until expiration/revocation.</p>
+<p>Lost grant delivery is recovered by inspecting the event, revoking and reissuing
+before a proposal/report exists, with a cap of eight attempts per event. Tokens
+are not recoverable from storage. Restarts and WebSocket reconnects invalidate
+outstanding tasks; a previous connection's event cannot be reissued as a new send.</p>
+<h2 id="proposals-and-review">Proposals and review</h2>
+<p>Policy modes are <code>review</code> (default), <code>template</code> and <code>disabled</code>. No automatic
+free-text mode exists. In review mode a worker can persist one immutable final
+text draft per event. Its digest binds text, target, task ID, epoch, expiry,
+connection/request ID and operator policy. An identical submission returns the
+existing draft; changed content conflicts. Dry-run uses the same validation without
+state changes or external sends.</p>
+<p>The operator reads the full draft/recipient/digest/report and separately approves
+or rejects that exact digest. CLI approval/rejection requires <code>--yes</code> and explicit
+write intent; the listener is the authority, not those flags. Rejection is terminal.
+Approval cannot change text or recipient. Recheck current task policy, epoch,
+connection, memory, report and deadline; the worker cannot approve itself.</p>
+<p>Template mode must be explicitly configured with at most 16 reviewed literals.
+The worker selects an ID only; no interpolation, caller text, unknown template or
+free-text fallback is allowed. After validation and persistence, broker policy
+permits the exact literal to send automatically. Templates are public material;
+selection quality is not guaranteed. Disabled mode permits reading/reporting but
+no proposal or approval-based send.</p>
+<p>Text must be valid UTF-8, at most 4096 bytes and pass outbound control/credential
+checks. Reflected bot credentials and task-token shapes are intercepted. These
+checks do not establish truth, appropriateness or complete secret detection.</p>
+<h2 id="durable-send-outcomes">Durable send outcomes</h2>
+<p><code>unset -&gt; sending -&gt; sent | failed | uncertain</code></p>
+<p>The sole send function runs under the admission lock. It persists <code>sending</code>, the
+bound proposal digest and review decision before network I/O. A completed block,
+revoke or reset cannot race a not-yet-started send. The actual client verifies the
+callback's connection generation again. Never substitute a proactive-send endpoint.</p>
+<p>Explicit upstream rejection/unavailable connection becomes terminal <code>failed</code>;
+missing acknowledgements, cancellation or ambiguous I/O become <code>uncertain</code>.
+Restart converts leftover <code>sending</code> to <code>uncertain</code>. Persistence failure poisons the
+store. Repeated operator approval returns the stored outcome without sending;
+no new task, draft or key may replay that event. Known outcomes remain inspectable
+through the operator even after task expiry or raw-text erasure.</p>
+<h2 id="risk-reports-and-operator-memory">Risk reports and operator memory</h2>
+<p>A worker can submit one fixed reason for its granted event. The report is immutable
+and stores task ID/time, not free-form instructions or a user-chosen target.
+Reporting closes this event's unsent reply path and rejects any pending draft;
+it cannot retract a completed send. Reports never change user permissions.
+Future normal events from the same sender remain eligible.</p>
+<p>Heuristic interception creates a 15-minute <code>watch</code> record that does not block
+future normal messages. Only the operator can set indefinite <code>blocked</code>, one-hour
+<code>quarantined</code>, one-day <code>watch</code>, or <code>clear</code>. Keys are bot/deployment/user, distinct
+from per-session model memory. Expiry is enforced on access/admission/send.
+Current records are operational evidence, not a tamper-proof historical audit log.</p>
+<h2 id="storage-migration-and-retention">Storage, migration and retention</h2>
+<p>Protected directories must already exist. Reject symlinks, untrusted owners,
+writable ancestors and file hard links. Root/service-owned sticky temp roots are
+allowed for tests. An exclusive process lock prevents competing local writers.
+Updates clone the bounded snapshot, write/fsync a 0600 temp file, rename, fsync the
+directory, then publish in memory. The ledger binds its bot/deployment and validates
+nested task/proposal/report invariants on load.</p>
+<p>Version 1 policies fail rather than silently retaining direct-send semantics.
+Version 1 ledgers migrate to version 2 while preserving IDs, tombstones, memory and
+outcomes. Legacy events have epoch zero and cannot receive new grants. Existing
+legacy temporary memory expires as originally recorded. Keep a protected backup;
+the older binary cannot read the migrated ledger.</p>
+<p>Raw inbound text and proposal text are hidden after retention (24 hours by default)
+and erased at startup/minute maintenance. Grant hashes, metadata, reports and
+send/dedup tombstones remain. The cap is 10,000 events and 64 MiB; exhaustion stops
+intake rather than deleting replay protection. This snapshot design is intentionally
+bounded; safe archival and a higher-throughput transactional store remain future
+work. Do not delete state to recover capacity or retry an uncertain send.</p>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

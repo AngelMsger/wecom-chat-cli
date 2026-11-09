@@ -1,0 +1,126 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Verification for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Verification — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/verification.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html" aria-current="page">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="verification-record">Verification record</h1>
+<p>Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and conversations in tests are synthetic.</p>
+<h2 id="completed-checks">Completed checks</h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Formatting and <code>go vet</code> (<code>make lint</code>)</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Full unit/security tests with race detector (<code>make test</code>)</td>
+<td>Passed on Linux amd64</td>
+</tr>
+<tr>
+<td>Compiled CLI against real agent/operator Unix sockets (<code>make e2e</code>)</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Separate OS identity fixture (<code>make isolation-check</code>)</td>
+<td>Passed on Linux amd64</td>
+</tr>
+<tr>
+<td>Generated command reference repeatability (<code>make docs-check</code>)</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Native binary build (<code>make build</code>)</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Linux/macOS amd64/arm64 cross-builds</td>
+<td>All four passed; macOS native execution awaits CI</td>
+</tr>
+<tr>
+<td>Dependency vulnerability scan (<code>make vuln</code>)</td>
+<td>No vulnerabilities found after updating x/sys to v0.44.0</td>
+</tr>
+<tr>
+<td>npm checksum/platform/destination tests</td>
+<td>All 3 passed</td>
+</tr>
+<tr>
+<td>Release and repository setup contract tests</td>
+<td>All 15 passed using local substitutes</td>
+</tr>
+<tr>
+<td>Site links and generated narrative HTML</td>
+<td>9 pages passed; no broken local anchors/assets</td>
+</tr>
+<tr>
+<td>Chromium site checks</td>
+<td>390/768/1440 px; task scenarios, clipboard, search and overflow checks passed</td>
+</tr>
+</tbody>
+</table>
+<p>Protocol tests exercise subscription credentials, exact callback request binding,
+final stream payload, acknowledgement uncertainty, stale connection generations,
+heartbeats, terminal authentication failure, displacement and failed intake.
+Security/state tests cover malformed identities and JSON, unknown socket fields,
+operator denial, trust envelopes, Chinese/English attack examples, dry runs,
+single-event grants, cross-task denial, self-approval denial, immutable drafts,
+exact-digest approval, one send across concurrent approvals, template-only auto
+sends, risk reports without user blocking, grant rotation/revocation, session
+serialization/reset, policy/connection/restart fencing, legacy migration,
+expiry, capacity, cursors, process locks, scope mismatch, crash recovery, symlinks,
+writable ancestors and persistence failure.</p>
+<p>The CLI end-to-end fixture builds a real binary and checks JSON/NDJSON output,
+operator watch cursor resume, environment-only worker grants, read-only intent,
+dry-run, drafts that do not send, exact-digest review, one send across repeated
+approvals, cross-task denial, session reset and risk reports without user bans.</p>
+<p>The OS fixture starts a real broker as a trusted setup identity and executes a
+probe as UID 2001/group 2000. Its task grant reads only Alice's event, while
+Bob's content, inbox enumeration and operator operations remain unavailable.
+The worker reaches its agent socket while operator
+socket access, private state/secret reads and policy writes fail. Its effective
+Linux capabilities are zero and outbound network is unavailable. This proves the
+fixture's boundary, not the isolation of an unrelated grok bot deployment.</p>
+<h2 id="managed-environment-test-runner">Managed-environment test runner</h2>
+<p>This task's outer filesystem exposes <code>/</code> and <code>/tmp</code> as owned by UID 65534. The
+broker intentionally rejects that environment instead of weakening its trusted
+ancestor checks. Filesystem tests therefore ran in a conventional Ubuntu root
+filesystem with networking disabled. The compiler ran outside the container;
+test executables ran inside it. A pinned image and a reusable runner are included:</p>
+<pre><code class="language-sh"># Prefetch public dependencies and the test image using the host's configured
+# network/proxy/CA settings before starting the network-disabled tests.
+go mod download
+docker --host=unix:///var/run/docker.sock pull \
+  ubuntu@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
+
+GOFLAGS=&quot;-exec=$PWD/scripts/container-exec.sh&quot; make test e2e
+WECOM_CHAT_TEST_ROOT=1 GOFLAGS=&quot;-exec=$PWD/scripts/container-exec.sh&quot; make isolation-check
+</code></pre>
+<p>The ordinary test container runs as the current UID, with a read-only root,
+read-only source/module/toolchain mounts, no Linux capabilities and no network.
+An executable temporary filesystem supports the compiled CLI fixture. The OS
+isolation fixture mounts only its synthetic test executable; its root setup
+process receives CHOWN/SETUID/SETGID solely to construct distinct identities, and
+the worker has none. No Docker socket, host home or credential files are mounted.</p>
+<p>Linux/macOS CI runs <code>make lint test e2e build docs-check site-check release-tests</code>
+and installer/vulnerability checks directly. The optional
+isolation test must use a disposable root setup environment and fails if invoked
+as an ordinary user; it never silently reports an unexecuted check as passed.</p>
+<h2 id="not-verified-or-delivered">Not verified or delivered</h2>
+<ul>
+<li>A live WeCom tenant, actual Bot ID/Secret, enterprise rollout and server reply
+validity window; no live messages were sent and no bot configuration changed.</li>
+<li>A concrete grok bot SDK/plugin adapter or the host's actual sandbox and tools.</li>
+<li>Disconnected-message replay/backfill or exactly-once model execution.</li>
+<li>General prompt-injection detection or factual-answer correctness; adversarial
+tests prove restricted effects, not semantic classification quality.</li>
+<li>The trustworthiness of an external automated reviewer or its credentials.</li>
+<li>Long-term ledger archival/compaction and high-volume durability/performance.</li>
+<li>Production systemd installation, private WeCom deployments, Windows sockets,
+macOS native execution, registry publication or a versioned release. The
+cross-build/checksum/npm pipeline is prepared and tested locally.</li>
+</ul>
+<p>The source remains a prerelease. Remote CI, Pages deployment and repository
+settings must be verified after the first push; local checks do not attest them. The hard event cap and explicit coverage
+gaps must remain visible until a production retention/operations design is added.</p>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

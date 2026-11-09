@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Host integration for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Host integration — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/host-integration.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html" aria-current="page">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="integrating-a-host-such-as-grok-bot">Integrating a host such as grok bot</h1>
+<p>The host is <strong>grok bot</strong>; its concrete SDK was not supplied. The CLI therefore
+provides an enforced, framework-neutral task/review protocol. It does not create
+host threads, provision sandboxes or claim a specific grok bot plugin integration.</p>
+<h2 id="authority-split">Authority split</h2>
+<p>A trusted deterministic supervisor/reviewer holds the operator socket. It may
+observe admitted events, issue/revoke grants and reset session epochs. Only an
+independent trusted review path may approve a free-text draft. A model worker
+receives the worker socket and one short-lived capability; it cannot enumerate
+messages or select an event. Never mount the operator socket into a worker.</p>
+<p>The supervisor's routing code may parse raw data but must not turn all external
+messages into the administrator agent's conversation. Reviewed replies are still
+untrusted data, not instructions to the approving program. Never use a blanket
+&quot;approve the digest the model returned&quot; loop.</p>
+<h2 id="session-and-thread-routing">Session and thread routing</h2>
+<p>The broker derives <code>session_key</code> from deployment, bot ID, conversation type,
+conversation ID and sender ID. A private chat is separate from a group chat;
+users within the same group also have separate sessions. Text claiming another
+identity cannot change these platform-derived coordinates.</p>
+<p>Map <code>(session_key, session_epoch)</code> to the host thread ID. Route only the associated
+history, summaries, retrieval context and tools into that thread. <code>session reset</code>
+increments the broker's epoch using an expected-epoch check. The next incoming
+event belongs to the new epoch; old tasks and drafts fail even if a worker still
+has its token. Reset host history alongside this operation. The CLI cannot itself
+clear the host's model memory or terminate its process.</p>
+<p>Only one active task is issuable per session. A newer event waits until the older
+task finishes, is rejected/revoked or expires. Once newer work has been issued,
+older events in that epoch cannot be newly assigned. Different sessions can have
+concurrent workers. Same-session serialization does not merge group participants'
+history and does not grant private-data access to group replies.</p>
+<h2 id="supervisor-sequence">Supervisor sequence</h2>
+<ol>
+<li>Watch the operator inbox with a bounded deadline/count. Retain each record's
+trust envelope, <code>id</code>, <code>cursor</code>, <code>session_key</code> and <code>session_epoch</code>.</li>
+<li>Durably enqueue and deduplicate by event ID. Check the reply deadline; do not
+route a stale connection/session event into privileged work.</li>
+<li>Call <code>task issue --event ID</code>. Capture its secret token programmatically, without
+logging it or adding it to model context. Provision only that worker's tool
+executor with <code>WECOM_CHAT_TASK_TOKEN</code>. Do not share other workers' environments.</li>
+<li>Start/reuse a sandboxed model context for the exact session/epoch. Give it only
+task read, reply proposal and risk-report capabilities. The worker calls <code>task get</code>; it does not receive a full inbox and cannot choose another event ID.</li>
+<li>In default review mode, inspect the immutable proposal using <code>reply get</code>. A
+trusted reviewer evaluates accuracy, appropriateness, disclosure, recipient and
+risk report. Only then approve the exact digest. Expired/revoked/reset/changed
+tasks cannot be approved. An approval timeout is not a reason to widen authority.</li>
+<li>Record the observed result and advance the host checkpoint after handling. A
+watch cursor acknowledges output, not model job completion. On an uncertain
+send, inspect the outcome and never manufacture another event to retry it.</li>
+</ol>
+<p>If task issuance succeeds but token delivery is lost, <code>event get</code> reveals grant
+metadata without disclosing the token again. Revoke and reissue before any draft
+exists. Outstanding grants expire no later than the event's local reply deadline.
+On broker restart, policy change or WebSocket reconnection they become unusable.
+Reissuing an old connection's event is not a backfill or proactive-send mechanism.</p>
+<h2 id="worker-api">Worker API</h2>
+<p>Use <code>POST /v1/request</code> over the worker Unix socket. Supply the capability in the
+<code>Authorization: Bearer ...</code> header, not JSON, argv or URL parameters. The CLI reads
+it from its dedicated environment variable only for worker operations.</p>
+<pre><code class="language-json">{&quot;op&quot;:&quot;task.get&quot;,&quot;bot_id&quot;:&quot;BOT_ID&quot;,&quot;deployment&quot;:&quot;support&quot;}
+</code></pre>
+<p>The result has a fixed trust envelope and contains <code>task_id</code>, <code>expires_at</code>,
+<code>reply_mode</code>, <code>template_ids</code>, and an <code>event</code> with its own provenance envelope.
+Only the authorized event is returned. No token/hash, remote callback request ID,
+other user's content or general configuration is returned.</p>
+<pre><code class="language-json">{&quot;op&quot;:&quot;reply.propose&quot;,&quot;bot_id&quot;:&quot;BOT_ID&quot;,&quot;deployment&quot;:&quot;support&quot;,&quot;text&quot;:&quot;A candidate answer&quot;,&quot;dry_run&quot;:true}
+</code></pre>
+<p>Omit <code>dry_run</code> only to persist the draft under existing task authorization. In
+review mode this still sends nothing. The worker cannot provide <code>event_id</code>, user,
+recipient, session, epoch, endpoint, approval or unrelated fields. A different
+second draft conflicts; an identical retry returns its stored result.</p>
+<pre><code class="language-json">{&quot;op&quot;:&quot;memory.report&quot;,&quot;bot_id&quot;:&quot;BOT_ID&quot;,&quot;deployment&quot;:&quot;support&quot;,&quot;reason&quot;:&quot;secret_request&quot;}
+</code></pre>
+<p>A report is immutable and event-bound. It cancels that event's pending reply path
+without changing the sender's access in other conversations or future events.
+Only the operator can set quarantine/block/watch/clear memory. A report made after
+sending is evidence only and cannot retract the message.</p>
+<h2 id="independent-approval-and-templates">Independent approval and templates</h2>
+<p><code>reply get --event ID</code> is operator-only and exposes the full text, recipient,
+session/epoch, expiration, task ID, digest, report and durable send status. Approval
+requires the exact digest and operator socket; <code>--yes</code> is confirmation, not a
+credential. The digest binds text, target, task, epoch, connection, expiry and policy.</p>
+<p>Explicit <code>template</code> policy permits automatic sending only of configured literal
+strings. The worker submits <code>template</code> instead of <code>text</code>; IDs come from <code>task get</code>.
+There are no substitutions, arbitrary destinations or free-text fallbacks. The
+operator must choose universally safe public templates. Selection quality remains
+a model limitation, and a template cannot be revoked retroactively after sending.</p>
+<h2 id="host-responsibilities-that-remain">Host responsibilities that remain</h2>
+<p>The host must provision the actual sandbox, per-session model history, durable
+job queue, reviewer and thread lifecycle. A stolen grant authorizes that exact task
+until revocation/expiry; prevent cross-worker credential access. The CLI rejects
+cross-task reads/writes even if the model guesses another event ID, but cannot
+prevent a privileged host tool or another authenticated connector bypassing it.</p>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

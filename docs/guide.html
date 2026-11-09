@@ -1,0 +1,175 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Operator guide for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Operator guide — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/guide.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html" aria-current="page">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="wecom-chat-cli">WeCom Chat CLI</h1>
+<p>Built for agents. Designed for humans.</p>
+<p>A credential-holding broker between a WeCom smart bot and isolated conversation
+workers, including hosts such as grok bot. It maintains the official WebSocket,
+labels external input as untrusted, issues single-event task capabilities, and
+requires independent review before sending a model's free-text answer.</p>
+<p><strong>Status: 0.2.0-dev prerelease; no binary/npm release or live-tenant certification.</strong>
+<a href="https://angelmsger.github.io/wecom-chat-cli/">Website</a> · <a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub</a> · <a href="releasing.html">Release guide</a></p>
+<p>See <a href="assessment.html">assessment</a>, <a href="technical-design.html">design</a>,
+<a href="security.html">security</a>, <a href="host-integration.html">host integration</a> and
+<a href="verification.html">verification</a>. Calendar and Channel remain separate CLIs.</p>
+<h2 id="protection-that-does-not-depend-on-model-judgment">Protection that does not depend on model judgment</h2>
+<ul>
+<li>Workers cannot enumerate the inbox, choose an event/recipient, issue grants,
+approve their own drafts, reset sessions or change user permissions.</li>
+<li>Each short-lived grant binds to one event, sender/conversation, session epoch,
+operator policy and current broker/WebSocket generation. Only a hash is stored.</li>
+<li>Same-session tasks are serialized. Resetting a session or revoking a task stops
+old work; policy changes, blocked users, expiry and reconnects also invalidate it.</li>
+<li>A free-text draft is immutable. The operator must inspect its target and full
+text, then approve that exact digest before the broker sends it.</li>
+<li>Model risk reports close that event's unsent reply path but never quarantine or
+block a person. Only the operator changes risk memory.</li>
+<li>Sends persist <code>sending</code> before I/O; duplicates return the known outcome and
+ambiguous sends are never replayed automatically.</li>
+</ul>
+<p>Text heuristics remain a preliminary filter. They do not certify safety or answer
+correctness. Even a completely compromised worker must lack administrator tools,
+private data and other workers' grants. See the required <a href="security.html">sandbox</a>.</p>
+<h2 id="reply-policies">Reply policies</h2>
+<table>
+<thead>
+<tr>
+<th><code>reply_mode</code></th>
+<th>Worker input</th>
+<th>Sending authority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>review</code> (default)</td>
+<td>A final text draft</td>
+<td>Independent operator approval of its immutable digest</td>
+</tr>
+<tr>
+<td><code>template</code> (explicit opt-in)</td>
+<td>An approved template ID</td>
+<td>Broker sends the exact operator-configured literal; no variables or substitutions</td>
+</tr>
+<tr>
+<td><code>disabled</code></td>
+<td>No reply proposal</td>
+<td>No sends; task reading and risk reporting remain available</td>
+</tr>
+</tbody>
+</table>
+<p>There is no unrestricted automatic free-text mode. Template selection can still
+be inappropriate; configure only harmless public responses suitable for every
+allowed recipient, such as a service-desk handoff. A stronger reviewer model can
+assist an operator, but is neither built in nor a substitute for access controls.</p>
+<h2 id="build-and-verify">Build and verify</h2>
+<p>Go 1.25+ with the pinned toolchain from <code>go.mod</code>. CI targets Linux and macOS;
+Linux is the production isolation reference. No published npm version exists yet.</p>
+<pre><code class="language-sh">git clone https://github.com/AngelMsger/wecom-chat-cli.git
+cd wecom-chat-cli
+</code></pre>
+<pre><code class="language-sh">make build
+make lint test e2e docs-check site-check release-tests
+npm test --prefix build/npm
+bin/wecom-chat-cli --help
+</code></pre>
+<p>Tests use synthetic conversations and local peers, not WeCom. The optional
+network-disabled container runner and OS-identity fixture are documented in
+<a href="verification.html">verification</a>. No live bot credentials were used.</p>
+<h2 id="operator-provisioning">Operator provisioning</h2>
+<p>Create a dedicated smart bot with API long-connection mode in WeCom administration.
+Obtain Bot ID and Secret there. Inspect existing integrations first: a competing
+subscriber can displace a connection, and switching API mode can disable a webhook.</p>
+<p>Provision a broker identity, isolated workers, protected policy/state, and separate
+worker/operator socket parents using <a href="security.html">security</a> and the
+<a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/deploy/wecom-chat.service">systemd reference</a>. Give only the trusted non-model
+supervisor/reviewer access to the operator socket. Workers receive the agent socket
+plus their own grant, never the operator socket or the bot Secret.</p>
+<pre><code class="language-sh">bin/wecom-chat-cli config example &gt; broker.json
+# Review version 2, bot/deployment, paths, stable user/group IDs and reply_mode.
+bin/wecom-chat-cli config validate --policy /absolute/protected/broker.json
+bin/wecom-chat-cli broker serve --policy /absolute/protected/broker.json --dry-run
+</code></pre>
+<p>The template has empty allowlists and <code>reply_mode: review</code>. Stable user IDs come
+from trusted directory administration or the official CLI's directory discovery
+(<code>wecom-cli contact --help</code>), never display names. Group IDs are an explicit
+prerequisite supplied by the trusted deployment owner. Unknown identities are not
+admitted merely to discover them.</p>
+<p>Supply <code>WECOM_CHAT_BOT_SECRET</code> only in the broker's protected service environment,
+then deliberately start <code>broker serve --policy /etc/wecom-chat/broker.json</code>.
+The CLI does not provision accounts, fix privileged permissions or install services.</p>
+<h2 id="operator-receive-an-event-and-issue-a-task">Operator: receive an event and issue a task</h2>
+<pre><code class="language-sh">wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
+  --bot-id BOT_ID --deployment support event watch --duration 60s --max-events 100
+
+wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
+  --bot-id BOT_ID --deployment support task issue --event EVENT_ID --allow-writes
+</code></pre>
+<p>The issue response contains a <strong>secret <code>task_token</code>, disclosed once</strong>. The trusted
+supervisor captures it without logging it or exposing it to the model, and injects
+<code>WECOM_CHAT_TASK_TOKEN</code> into only that worker's tool executor. Never put a token in
+argv, a shared environment, chat history or a general credential store. If delivery
+of the grant is uncertain, inspect <code>event get</code>, revoke it and issue a replacement;
+issuance is bounded to eight grants per event and cannot replace a submitted draft.</p>
+<h2 id="worker-read-its-task-and-propose-an-answer">Worker: read its task and propose an answer</h2>
+<p>With the worker's scoped token already provisioned in its environment:</p>
+<pre><code class="language-sh">wecom-chat-cli --socket /run/wecom-chat-agent/bridge.sock \
+  --bot-id BOT_ID --deployment support task get
+
+printf '%s' 'A concise answer based on approved task data.' | \
+  wecom-chat-cli --socket /run/wecom-chat-agent/bridge.sock \
+  --bot-id BOT_ID --deployment support reply propose --allow-writes
+
+# Alternative: report a risk and decline this task, without blocking its author.
+wecom-chat-cli --socket /run/wecom-chat-agent/bridge.sock \
+  --bot-id BOT_ID --deployment support memory report \
+  --reason secret_request --allow-writes
+</code></pre>
+<p>Worker commands have no <code>--event</code> or recipient selector. Use <code>--dry-run</code> to validate
+without writing or sending. <code>--allow-writes</code> signals invocation intent and grants
+no server privilege. A proposal in review mode does not send anything. A risk report
+cancels a pending unsent draft; it cannot retract an already sent message.</p>
+<p>In explicitly enabled template mode, use <code>reply propose --template TEMPLATE_ID --allow-writes</code>; IDs are listed by <code>task get</code>. The broker sends the exact configured
+literal. Free text, unknown IDs and substitutions are rejected.</p>
+<h2 id="operator-inspect-and-review">Operator: inspect and review</h2>
+<pre><code class="language-sh">wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
+  --bot-id BOT_ID --deployment support reply get --event EVENT_ID
+
+wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
+  --bot-id BOT_ID --deployment support reply approve \
+  --event EVENT_ID --digest REVIEWED_DIGEST --yes --allow-writes
+</code></pre>
+<p><code>reply reject</code> takes the same target/digest/confirmation flags. Rejection is terminal.
+Review content as untrusted text; never render executable content or let it instruct
+an approving agent. Do not implement a supervisor that automatically approves every
+model-generated digest. After an interrupted call, inspect <code>reply get</code> or <code>event get</code>;
+<code>sent</code>, <code>failed</code> and <code>uncertain</code> are terminal. Repeated approval cannot resend.</p>
+<p>Additional operator controls: <code>task revoke --event ID --yes</code>,
+<code>session reset --event ID --expected-epoch N --yes</code>, and
+<code>memory set --user USER_ID --status blocked|quarantined|watch|clear --yes</code>.
+Each mutation also requires <code>--allow-writes</code> unless previewed with <code>--dry-run</code>.
+A session reset invalidates its old events/tasks; the next incoming event carries
+its new epoch. Operator quarantine lasts one hour; blocking is indefinite.</p>
+<h2 id="migration-and-limitations">Migration and limitations</h2>
+<p>Version 1 policies are rejected. Replace <code>enable_replies</code> with an explicit version
+2 <code>reply_mode</code>, add <code>task_ttl_seconds</code> (10..reply TTL) and <code>templates</code> (an object),
+and review the new roles. <code>event list/get/watch</code> now require the operator socket;
+<code>reply send</code> and <code>memory flag</code> no longer exist. There is no compatibility bypass.</p>
+<p>Version 1 ledgers migrate to version 2 without deleting deduplication history,
+operator memory or send outcomes. Legacy events retain epoch zero and cannot
+receive new grants. Preserve a protected backup and do not roll back an updated
+ledger to an older binary. Restarts invalidate outstanding grants and approvals.</p>
+<p>Only this bot's live callbacks are observed; there is no tenant-wide chat archive,
+missed-message backfill or exactly-once host execution. Quotes and non-text content
+are suppressed; URLs are never fetched. Replies are final frames, not token streams.</p>
+<p>Raw admitted text and drafts expire after 24 hours by default; bounded tombstones
+remain. The 10,000-event/64-MiB cap stops intake instead of deleting replay history.
+Long-term archival, high-volume operation, a concrete grok bot adapter and live
+acceptance remain future work. The <a href="releasing.html">release pipeline</a> prepares
+Linux/macOS binaries and a checksum-verified npm wrapper when a maintainer tags a release. See the <a href="cli/index.html#wecom-chat-cli">command reference</a>
+and <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/skills/wecom-chat/SKILL.md">companion Skill</a>.</p>
+<h2 id="contributing-and-related-projects">Contributing and related projects</h2>
+<p>Read <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>, <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/SECURITY.md">security reporting</a> and the
+<a href="releasing.html">release guide</a>. Markdown is canonical; <code>make docs</code> generates
+the searchable HTML site and command reference.</p>
+<ul>
+<li><a href="https://github.com/AngelMsger/wecom-calendar-cli">WeCom Calendar CLI</a>: rolling calendar retrieval.</li>
+<li><a href="https://github.com/AngelMsger/wecom-channel-cli">WeCom Channel CLI</a>: isolated channel observation and reviewed actions.</li>
+</ul>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

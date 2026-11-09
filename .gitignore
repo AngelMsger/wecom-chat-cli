@@ -1,0 +1,13 @@
+/bin/
+/dist/
+*.db*
+*.sock
+*.env
+ledger.json
+broker.lock
+
+/build/npm/binary/
+/build/npm/SKILL.md
+/node_modules/
+**/__pycache__/
+*.tgz

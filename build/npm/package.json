@@ -1,0 +1,16 @@
+{
+  "name": "@angelmsger/wecom-chat-cli",
+  "version": "0.2.0-dev",
+  "description": "WeCom smart-bot conversations for agents with scoped tasks and independently reviewed replies.",
+  "license": "MIT",
+  "repository": {"type": "git", "url": "git+https://github.com/AngelMsger/wecom-chat-cli.git"},
+  "homepage": "https://angelmsger.github.io/wecom-chat-cli/",
+  "bin": {"wecom-chat-cli": "bin/wecom-chat-cli.js"},
+  "scripts": {"postinstall": "node install.js", "test": "node --test install.test.js"},
+  "files": ["bin/", "install.js", "README.md", "LICENSE", "SKILL.md"],
+  "engines": {"node": ">=20"},
+  "os": ["darwin", "linux"],
+  "cpu": ["x64", "arm64"],
+  "keywords": ["wecom", "smart-bot", "ai-agents", "cli", "security"],
+  "publishConfig": {"access": "public", "provenance": true}
+}

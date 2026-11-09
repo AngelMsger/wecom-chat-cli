@@ -1,0 +1,43 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  GOWORK: 'off'
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: make lint test e2e build docs-check site-check release-tests
+      - run: npm test --prefix build/npm
+      - run: make vuln
+      - run: git diff --exit-code
+  isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: make cross
+      - name: Prepare disposable Linux fixture
+        run: docker --host=unix:///var/run/docker.sock pull ubuntu@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
+      - name: Verify worker isolation without network access
+        run: WECOM_CHAT_TEST_ROOT=1 GOFLAGS="-exec=$PWD/scripts/container-exec.sh" make isolation-check

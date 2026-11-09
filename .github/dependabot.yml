@@ -1,0 +1,9 @@
+# Match Calendar: shared kit releases are tracked; other upgrades are deliberate.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: github.com/angelmsger/agent-cli-kit

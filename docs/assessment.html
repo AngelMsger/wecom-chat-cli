@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Assessment and scope for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Assessment and scope — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/assessment.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html" aria-current="page">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="assessment-and-scope">Assessment and scope</h1>
+<p>Checked against the public official CLI reference and smart-bot SDK on
+2026-11-06. Service methods in the official CLI are dynamically discovered;
+documentation inspection does not prove what every tenant's gateway exposes.</p>
+<h2 id="recommendation">Recommendation</h2>
+<p>Build this as a focused bridge and policy broker if untrusted employees need
+reactive conversations with agents that otherwise hold powerful tools. Transport
+alone is not a strong reason to maintain another CLI: the official SDK already
+implements it. The durable value is independently enforced admission, provenance,
+scoped task capabilities, independently reviewed replies, risk memory and a portable host interface.</p>
+<p>If a host already provides equivalent bot transport, separate workers, least
+privilege, per-sender state and a policy-controlled reply channel, an adapter
+may be cheaper. Reassess the official CLI as it evolves. Official feature overlap
+does not by itself replace this isolation boundary.</p>
+<h2 id="feasibility-and-evidence">Feasibility and evidence</h2>
+<ul>
+<li>The official <a href="https://github.com/WecomTeam/aibot-node-sdk">Node SDK</a> documents
+<code>wss://openws.work.weixin.qq.com</code>, subscription with Bot ID/Secret, pushed
+callbacks, heartbeats and replies using the callback's <code>req_id</code>.</li>
+<li>Its <a href="https://github.com/WecomTeam/aibot-node-sdk/blob/main/src/ws.ts">connection manager</a>
+serializes replies per request, waits for acknowledgements, and stops reconnecting
+when displaced by another subscriber. This bridge follows those semantics.</li>
+<li>Its <a href="https://github.com/WecomTeam/aibot-node-sdk/blob/main/src/types/message.ts">message types</a>
+distinguish sender ID, group/single conversation, message ID and optional quote.</li>
+<li>The <a href="https://github.com/WecomTeam/wecom-cli/blob/main/docs/cli-reference.md">official CLI reference</a>
+describes dynamically discovered remote methods and gives <code>message aibot sessions list</code> as an example. It does not establish a persistent, isolated agent bridge.
+Calling this simply a &quot;static message-list CLI&quot; would overstate what was verified.</li>
+<li>Tencent's <a href="https://cloud.tencent.com/document/product/1759/121473">ADP integration guide</a>
+describes smart-bot single conversations and group mentions via long connection.
+It is not permission to observe all employee conversations.</li>
+</ul>
+<p>The transport is feasible without a public inbound endpoint. Delivery during
+disconnection, tenant permissions, exact reply validity windows and compatibility
+with existing bot integrations require live testing in the target tenant.
+The default 120-second reply TTL is a conservative local policy, not a claim
+about an official server deadline. The upstream can reject a shorter window.</p>
+<h2 id="safety-assessment">Safety assessment</h2>
+<p>Prompt injection detection is inherently incomplete. Obfuscated, indirect or
+multi-turn attacks can pass a rule or model classifier. A safe architecture must
+remain bounded when the model follows an attack:</p>
+<ol>
+<li>The privileged supervisor owns policy, secrets and worker lifecycle.</li>
+<li>Only a disposable low-privilege worker receives raw external messages.</li>
+<li>The broker exposes single-event task reads, immutable reply drafts and risk reports,
+never shell/file access or arbitrary recipients.</li>
+<li>Business actions needing authority must be introduced later as separately
+authorized narrow capabilities, outside conversational claims of identity.</li>
+</ol>
+<p>Giving the same unsandboxed host agent a cautionary message is not isolation.
+Similarly, output secret patterns cannot protect secrets already accessible
+through another tool. Keep sensitive data out of the conversational worker.</p>
+<h2 id="family-applicability">Family applicability</h2>
+<p>This is a new product, not a change to shared contracts. Existing checkouts were
+inspected and remain unchanged. The workspace's <code>fx</code> executable was unavailable;
+repository status was checked directly instead.</p>
+<table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Applicability and inspected pattern</th>
+<th>Required change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bitbucket</td>
+<td>Kit output/errors/transport in app and pkg; no smart-bot service</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Confluence</td>
+<td>Same family adapters; no smart-bot service</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Jenkins</td>
+<td>Same family adapters; no smart-bot service</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Same family adapters; no smart-bot service</td>
+<td>None</td>
+</tr>
+<tr>
+<td>OpenObserve</td>
+<td>Same family adapters; no smart-bot service</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Prometheus</td>
+<td>Same family adapters; no smart-bot service</td>
+<td>None</td>
+</tr>
+<tr>
+<td>WeCom Calendar</td>
+<td>Kit interfaces and local state precedent; calendar domain</td>
+<td>None</td>
+</tr>
+<tr>
+<td>WeCom Channel</td>
+<td>Closest security reference: independent broker, sockets, immutable provenance, durable outcomes</td>
+<td>None; safejson/securefs sources ported with MIT attribution</td>
+</tr>
+<tr>
+<td>agent-cli-kit</td>
+<td>Reuse pinned v0.8.1 output/errors/argv; no generic behavior changes</td>
+<td>None</td>
+</tr>
+<tr>
+<td>fx-devkit / workspace hub</td>
+<td>Workspace registration is outside this repository</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p>Intentional prerelease differences: explicit socket/bot/deployment flags instead
+of named contexts; broker-only environment credentials instead of worker login;
+no raw/table/projection output; no automatic runtime update checks;
+companion Skill is a checked-in guide, without an install/handshake command.
+Repository, Pages, CI and release infrastructure follow the <a href="releasing.html">family release pattern</a>.
+The kit's HTTP retry layer does not implement WebSockets; the domain transport
+therefore owns subscription/reconnect, with no retry of remote writes.</p>
+<p>Free-text bot replies require independent operator approval of the exact draft
+digest. Unattended sends require explicit template policy and contain only reviewed
+literal text, without substitutions. The bot sends in its own identity. No worker
+can select an event, approve itself or change a sender's access permissions.</p>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

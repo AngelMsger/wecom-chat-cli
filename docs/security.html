@@ -1,0 +1,228 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Security model for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Security model — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/security.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html" aria-current="page">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="security-and-deployment">Security and deployment</h1>
+<h2 id="required-isolation">Required isolation</h2>
+<p>The CLI constrains what goes through its broker. It cannot stop an unsandboxed
+host agent from using a shell, filesystem, browser, MCP connector or another
+authenticated WeCom tool. Run the complete conversation worker and its tool
+executor under a separate OS identity or in an unprivileged container/VM. A
+different prompt or process with the administrator's UID is not isolation.</p>
+<p>The worker receives only its own short-lived task token; never place all workers'
+grants in a shared environment or mount. Isolate workers from each other's process
+environments, memory and files as well, using distinct identities or containers;
+separate threads under a shared unrestricted UID do not provide that boundary.
+The worker must have no host home, private repository, cloud credentials, SSH
+agent, OS keychain, Docker socket, sudo, broker environment, operator socket,
+broker state, or writable policy mount. Deny general outbound network and
+privilege escalation, enforce resource/deadline quotas, and provide only public
+or explicitly authorized conversation data. Model inference can be mediated by
+a narrow host-controlled gateway. Do not expose a general service token to the
+model's tool executor. Other authenticated tools can bypass this broker.</p>
+<p>Only trusted deterministic supervisor/reviewer code or the human operator may use
+the operator socket. A model must not receive it merely to discover events or
+approve its own draft. Never auto-approve every submitted digest.</p>
+<p>Keep the privileged supervisor's administrator chat and memory separate. Give
+each sender/conversation its own worker context identified by <code>session_key</code> plus
+<code>session_epoch</code>, and reset disposable execution state between sessions. In group chats the session key
+also includes the sender; a response still appears in the group and must not
+contain private information. Receiving a group mention does not authorize access
+to a user's other messages or resources.</p>
+<h2 id="authority">Authority</h2>
+<table>
+<thead>
+<tr>
+<th>Actor</th>
+<th>Capabilities</th>
+<th>Excluded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WeCom sender</td>
+<td>Send external content within allowed bot conversations</td>
+<td>Operator identity, host commands, policy changes</td>
+</tr>
+<tr>
+<td>Agent worker</td>
+<td>Read its granted event; propose one draft or a literal template; report risk</td>
+<td>Inbox enumeration, choosing event/recipient, self-approval, user memory changes, other grants, bot credentials</td>
+</tr>
+<tr>
+<td>Broker</td>
+<td>Fixed TLS endpoint, private ledger, two local interfaces</td>
+<td>Shell execution, arbitrary fetch/download/upload, tool dispatch</td>
+</tr>
+<tr>
+<td>Trusted supervisor/reviewer/operator</td>
+<td>Observe inbox; issue/revoke task grants; reset sessions; approve exact drafts; manage user memory</td>
+<td>Authority inferred from external content or a model selecting its own privilege</td>
+</tr>
+</tbody>
+</table>
+<p>All users, including allowlisted employees and people claiming to be the owner,
+remain untrusted content authors. Transport authentication verifies the source
+channel and event metadata; it does not convert message text into instructions.</p>
+<h2 id="enforced-controls-and-limits">Enforced controls and limits</h2>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Control</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prompt injection</td>
+<td>Fixed provenance envelope; bounded heuristic screen; no command executor</td>
+<td>Classifiers can be bypassed; the worker sandbox must remain safe on a false negative</td>
+</tr>
+<tr>
+<td>Secret disclosure</td>
+<td>Worker has no private data; broker suppresses reflected bot Secret; outbound credential-pattern check</td>
+<td>Encoded or semantic leaks are not reliably detected; do not give the worker sensitive data</td>
+</tr>
+<tr>
+<td>Memory poisoning</td>
+<td>Worker reports have a fixed reason and task-bound target; only operator changes permissions</td>
+<td>A false report can decline its own task, but cannot silence the user in future conversations</td>
+</tr>
+<tr>
+<td>Misrouted replies</td>
+<td>Scoped token, no worker event selector, stored callback target, session epoch and connection binding</td>
+<td>The supervisor must provision each token to the correct isolated worker</td>
+</tr>
+<tr>
+<td>Wrong or fabricated answer</td>
+<td>Default immutable draft and independent review; optional fixed literal templates</td>
+<td>Neither pattern checks nor a digest verify truth; reviewer/template quality remains a responsibility</td>
+</tr>
+<tr>
+<td>Duplicate sends</td>
+<td>Durable <code>sending</code> before I/O; crash recovery to <code>uncertain</code>; no automatic replay</td>
+<td>Exactly-once remote delivery is not promised without upstream idempotency</td>
+</tr>
+<tr>
+<td>Privilege escalation</td>
+<td>Capability-only worker operations; separate operator listener; immutable digest approval</td>
+<td>Same-user access to operator resources defeats the boundary</td>
+</tr>
+<tr>
+<td>Path and URL attacks</td>
+<td>No file/media or arbitrary-URL interface; fixed server endpoint</td>
+<td>Broker OS/root/proxy administrators remain trusted</td>
+</tr>
+<tr>
+<td>Terminal spoofing</td>
+<td>JSON-only external records, no raw/table/field removal; controls intercepted</td>
+<td>A downstream UI must keep text as data and must not fetch links</td>
+</tr>
+<tr>
+<td>Denial of service</td>
+<td>Frame/body/queue/concurrency/byte/rate/ledger bounds</td>
+<td>An allowed sender can exhaust bounded capacity; host resource limits and future archival remain necessary</td>
+</tr>
+</tbody>
+</table>
+<p>Heuristics cover conspicuous Chinese/English instruction override, secret requests
+and destructive command requests, with limited full-width/format-character handling.
+They are deliberately neither a complete policy engine nor proof of benign intent.
+An optional model classifier could improve recall later, but may only narrow
+capabilities, never grant trust. Treat its conclusions as untrusted suggestions.</p>
+<h2 id="linux-installation-reference">Linux installation reference</h2>
+<p>Create dedicated <code>wecom-chat</code> service and worker accounts and a shared
+<code>wecom-chat-agents</code> group. Only intended workers belong to that group. The broker
+uses that primary group; the operator administers it through an external trusted
+mechanism the worker cannot invoke. Provision this layout:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Owner/group</th>
+<th>Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/etc/wecom-chat/</code></td>
+<td>root/root</td>
+<td>0755</td>
+</tr>
+<tr>
+<td><code>/etc/wecom-chat/broker.json</code></td>
+<td>root/root</td>
+<td>0644</td>
+</tr>
+<tr>
+<td><code>/etc/wecom-chat/secrets.env</code></td>
+<td>root/root</td>
+<td>0600</td>
+</tr>
+<tr>
+<td><code>/var/lib/wecom-chat/</code></td>
+<td>wecom-chat/wecom-chat-agents</td>
+<td>0700</td>
+</tr>
+<tr>
+<td><code>/run/wecom-chat-agent/</code></td>
+<td>wecom-chat/wecom-chat-agents</td>
+<td>0750</td>
+</tr>
+<tr>
+<td><code>/run/wecom-chat-agent/bridge.sock</code></td>
+<td>wecom-chat/wecom-chat-agents</td>
+<td>0660 (created by service)</td>
+</tr>
+<tr>
+<td><code>/run/wecom-chat-operator/</code></td>
+<td>wecom-chat/wecom-chat-agents</td>
+<td>0700</td>
+</tr>
+<tr>
+<td><code>/run/wecom-chat-operator/bridge.sock</code></td>
+<td>wecom-chat/wecom-chat-agents</td>
+<td>0600 (created by service)</td>
+</tr>
+</tbody>
+</table>
+<p>The example socket filename remains <code>bridge.sock</code> because it identifies the local
+broker channel, not another public CLI. Every path ancestor must be root/service
+owned and not group/world-writable (except trusted sticky temporary roots for
+tests). Symlinked ancestors and unexpected file hard links are rejected.</p>
+<p>Review <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/deploy/wecom-chat.service">the service unit</a> and
+<a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/deploy/wecom-chat.tmpfiles.conf">runtime directory configuration</a> before
+installation. They are references, not automatically deployed. Install a reviewed
+binary at <code>/usr/local/bin/wecom-chat-cli</code>, provision the policy and broker-only
+environment, validate, then deliberately start the service. Automatic restart is
+disabled to avoid fighting another bot subscriber after displacement.</p>
+<p>If an unclean exit leaves sockets behind, verify no service is active and preserve
+the ledger before removing only the stale socket entries. The CLI refuses to
+unlink an existing endpoint automatically. Never remove the ledger to clear a
+send failure or full capacity. Keep logs free of raw content and credentials.
+Use encrypted storage and appropriate backup retention for personal data.</p>
+<h2 id="live-acceptance-gates">Live acceptance gates</h2>
+<p>Offline tests cannot attest a real host's sandbox or a tenant's API rollout.
+Before unattended use, verify with a dedicated test bot:</p>
+<ol>
+<li>Intended single-chat and group-mention callbacks carry the expected IDs; other
+users/groups cannot enter the worker. This is not an enterprise chat archive.</li>
+<li>A normal draft stays unsent until independent exact-digest approval, then works
+within the local deadline with a final response and acknowledgement. In template
+mode only the reviewed literal is sent. Do not silently widen the deadline.</li>
+<li>Duplicate callbacks, disconnects and process interruption do not resend replies;
+coverage gaps are visible and a competing subscriber stops the service.</li>
+<li>Actual worker identity cannot open the operator socket, state, credentials or
+privileged host paths, or use alternate authenticated connectors.</li>
+<li>Malicious content is treated as data even when heuristics miss it; each worker
+remains unable to run privileged commands or retrieve secrets.</li>
+<li>A worker grant cannot read another event, select its recipient, enumerate the
+inbox, issue grants or approve drafts. Old grants fail after revoke/reset.</li>
+<li>A model risk report cannot modify user memory or suppress future normal messages;
+only operator quarantine/block can do so. Audit token-free output and storage.</li>
+</ol>
+<p>Task grants authorize only one event and expire within its reply deadline.
+Revocation, user blocks, reset, policy changes and reconnect/restart invalidate
+access. They are bearer credentials: a stolen grant can still read/propose/report
+for that task. The broker stores only a hash. Protect the one-time operator issue
+response and do not put it in model context, diagnostics or shell arguments.</p>
+<p>Use an explicitly authorized test conversation for live sends. No such send was
+performed during this implementation.</p>
+</article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

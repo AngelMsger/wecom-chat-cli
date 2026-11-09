@@ -1,0 +1,391 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Command reference for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Command reference — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/cli/index.html"><link rel="icon" href="../assets/mark.svg"><link rel="stylesheet" href="../assets/site.css"><script src="../assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="../index.html"><img src="../assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="../host-integration.html">Integration</a><a href="../index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="../guide.html">Operator guide</a><a href="../host-integration.html">Host integration</a><a href="../cli/index.html" aria-current="page">Command reference</a><a href="../security.html">Security model</a><a href="../technical-design.html">Technical design</a><a href="../assessment.html">Assessment</a><a href="../verification.html">Verification</a><a href="../releasing.html">Release guide</a></aside><article class="doc-article"><h1>Command reference</h1><p>Generated from the actual command tree. Every flag, one searchable surface.</p><label for="command-search">Find a command or flag</label><input id="command-search" class="command-search" type="search" placeholder="Try: task, approve, --dry-run"><p id="search-summary" class="search-summary" aria-live="polite"></p><section class="command-section" id="wecom-chat-cli"><h2>wecom-chat-cli</h2><p>Isolate agents from untrusted WeCom smart-bot conversations</p><pre><code>Usage:
+  wecom-chat-cli [flags]
+  wecom-chat-cli [command]
+
+Available Commands:
+  auth        Read credential provisioning guidance
+  broker      Run the credential-holding operator service
+  config      Inspect operator policy
+  event       Operator-only event discovery and monitoring
+  memory      Manage scoped sender risk records
+  reply       Propose immutable replies and independently review sends
+  session     Operator-controlled conversation fences
+  status      Inspect broker connectivity and scope
+  task        Issue or consume single-event worker grants
+  version     Show the local CLI version
+
+Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-auth"><h2>wecom-chat-cli auth</h2><p>Read credential provisioning guidance</p><pre><code>Usage:
+  wecom-chat-cli auth [flags]
+  wecom-chat-cli auth [command]
+
+Available Commands:
+  guide       Explain broker-only smart-bot credentials
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli auth [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-auth-guide"><h2>wecom-chat-cli auth guide</h2><p>Explain broker-only smart-bot credentials</p><pre><code>Usage:
+  wecom-chat-cli auth guide [flags]
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-broker"><h2>wecom-chat-cli broker</h2><p>Run the credential-holding operator service</p><pre><code>Usage:
+  wecom-chat-cli broker [flags]
+  wecom-chat-cli broker [command]
+
+Available Commands:
+  serve       Maintain the smart-bot connection and scoped worker/operator sockets
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli broker [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-broker-serve"><h2>wecom-chat-cli broker serve</h2><p>Maintain the smart-bot connection and scoped worker/operator sockets</p><pre><code>Usage:
+  wecom-chat-cli broker serve [flags]
+
+Flags:
+      --policy string   Absolute policy JSON path
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-config"><h2>wecom-chat-cli config</h2><p>Inspect operator policy</p><pre><code>Usage:
+  wecom-chat-cli config [flags]
+  wecom-chat-cli config [command]
+
+Available Commands:
+  example     Print a deny-by-default operator policy
+  validate    Validate a protected operator policy offline
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli config [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-config-example"><h2>wecom-chat-cli config example</h2><p>Print a deny-by-default operator policy</p><pre><code>Usage:
+  wecom-chat-cli config example [flags]
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-config-validate"><h2>wecom-chat-cli config validate</h2><p>Validate a protected operator policy offline</p><pre><code>Usage:
+  wecom-chat-cli config validate [flags]
+
+Flags:
+      --policy string   Absolute policy JSON path
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-event"><h2>wecom-chat-cli event</h2><p>Operator-only event discovery and monitoring</p><pre><code>Usage:
+  wecom-chat-cli event [flags]
+  wecom-chat-cli event [command]
+
+Available Commands:
+  get         Inspect one event and its durable reply outcome
+  list        Read one bounded page; reuse its cursor
+  watch       Stream bounded NDJSON with resumable event cursors
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli event [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-event-get"><h2>wecom-chat-cli event get</h2><p>Inspect one event and its durable reply outcome</p><pre><code>Usage:
+  wecom-chat-cli event get [flags]
+
+Flags:
+      --event string   Event ID from list/watch or a reply result
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-event-list"><h2>wecom-chat-cli event list</h2><p>Read one bounded page; reuse its cursor</p><pre><code>Usage:
+  wecom-chat-cli event list [flags]
+
+Flags:
+      --cursor string        Cursor from a prior page or event
+      --include-suppressed   Include redacted quarantined/suppressed events for operator inspection
+      --limit int            Maximum events, 1..100 (default 50)
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-event-watch"><h2>wecom-chat-cli event watch</h2><p>Stream bounded NDJSON with resumable event cursors</p><pre><code>Usage:
+  wecom-chat-cli event watch [flags]
+
+Flags:
+      --cursor string       Last successfully handled event cursor
+      --duration duration   Total observation deadline, at most 1h (default 1m0s)
+      --max-events int      Maximum delivered events (default 100)
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-memory"><h2>wecom-chat-cli memory</h2><p>Manage scoped sender risk records</p><pre><code>Usage:
+  wecom-chat-cli memory [flags]
+  wecom-chat-cli memory [command]
+
+Available Commands:
+  list        List active risk records through the operator socket
+  report      Worker: report a fixed risk reason without changing user permissions
+  set         Operator-only block, quarantine, watch or clear for an allowlisted user
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli memory [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-memory-list"><h2>wecom-chat-cli memory list</h2><p>List active risk records through the operator socket</p><pre><code>Usage:
+  wecom-chat-cli memory list [flags]
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-memory-report"><h2>wecom-chat-cli memory report</h2><p>Worker: report a fixed risk reason without changing user permissions</p><pre><code>Usage:
+  wecom-chat-cli memory report [flags]
+
+Flags:
+      --reason string   prompt_injection, secret_request, destructive_request, abuse, other
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-memory-set"><h2>wecom-chat-cli memory set</h2><p>Operator-only block, quarantine, watch or clear for an allowlisted user</p><pre><code>Usage:
+  wecom-chat-cli memory set [flags]
+
+Flags:
+      --reason string   Fixed reason code (default &#34;other&#34;)
+      --status string   blocked, quarantined, watch or clear
+      --user string     Stable user ID from an event or reviewed operator policy
+      --yes             Confirm the selected user&#39;s policy change
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-reply"><h2>wecom-chat-cli reply</h2><p>Propose immutable replies and independently review sends</p><pre><code>Usage:
+  wecom-chat-cli reply [flags]
+  wecom-chat-cli reply [command]
+
+Available Commands:
+  approve     Operator: approve the exact immutable proposal digest
+  get         Operator: inspect the exact draft, target, digest and outcome
+  propose     Worker: submit stdin text for review, or select an approved literal template
+  reject      Operator: reject the exact immutable proposal digest
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli reply [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-reply-approve"><h2>wecom-chat-cli reply approve</h2><p>Operator: approve the exact immutable proposal digest</p><pre><code>Usage:
+  wecom-chat-cli reply approve [flags]
+
+Flags:
+      --digest string   Exact digest returned by reply get
+      --event string    Reviewed event ID
+      --yes             Confirm the reviewed proposal action
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-reply-get"><h2>wecom-chat-cli reply get</h2><p>Operator: inspect the exact draft, target, digest and outcome</p><pre><code>Usage:
+  wecom-chat-cli reply get [flags]
+
+Flags:
+      --event string   Event ID with a proposal
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-reply-propose"><h2>wecom-chat-cli reply propose</h2><p>Worker: submit stdin text for review, or select an approved literal template</p><pre><code>Usage:
+  wecom-chat-cli reply propose [flags]
+
+Flags:
+      --template string   Policy-approved literal template ID; only in template mode
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-reply-reject"><h2>wecom-chat-cli reply reject</h2><p>Operator: reject the exact immutable proposal digest</p><pre><code>Usage:
+  wecom-chat-cli reply reject [flags]
+
+Flags:
+      --digest string   Exact digest returned by reply get
+      --event string    Reviewed event ID
+      --yes             Confirm the reviewed proposal action
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-session"><h2>wecom-chat-cli session</h2><p>Operator-controlled conversation fences</p><pre><code>Usage:
+  wecom-chat-cli session [flags]
+  wecom-chat-cli session [command]
+
+Available Commands:
+  reset       Advance the session epoch and invalidate all previous tasks
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli session [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-session-reset"><h2>wecom-chat-cli session reset</h2><p>Advance the session epoch and invalidate all previous tasks</p><pre><code>Usage:
+  wecom-chat-cli session reset [flags]
+
+Flags:
+      --event string         An event identifying the session
+      --expected-epoch int   Current session epoch from an event record
+      --yes                  Confirm the conversation reset
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-status"><h2>wecom-chat-cli status</h2><p>Inspect broker connectivity and scope</p><pre><code>Usage:
+  wecom-chat-cli status [flags]
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-task"><h2>wecom-chat-cli task</h2><p>Issue or consume single-event worker grants</p><pre><code>Usage:
+  wecom-chat-cli task [flags]
+  wecom-chat-cli task [command]
+
+Available Commands:
+  get         Worker: read only the task bound to WECOM_CHAT_TASK_TOKEN
+  issue       Operator: issue a short-lived grant; stdout contains a secret token
+  revoke      Operator: revoke a task grant and prevent pending sends
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli task [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-task-get"><h2>wecom-chat-cli task get</h2><p>Worker: read only the task bound to WECOM_CHAT_TASK_TOKEN</p><pre><code>Usage:
+  wecom-chat-cli task get [flags]
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-task-issue"><h2>wecom-chat-cli task issue</h2><p>Operator: issue a short-lived grant; stdout contains a secret token</p><pre><code>Usage:
+  wecom-chat-cli task issue [flags]
+
+Flags:
+      --event string   Admitted event ID from event list/watch
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-task-revoke"><h2>wecom-chat-cli task revoke</h2><p>Operator: revoke a task grant and prevent pending sends</p><pre><code>Usage:
+  wecom-chat-cli task revoke [flags]
+
+Flags:
+      --event string   Event whose task must be revoked
+      --yes            Confirm revocation
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-version"><h2>wecom-chat-cli version</h2><p>Show the local CLI version</p><pre><code>Usage:
+  wecom-chat-cli version [flags]
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section></article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="../index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>
