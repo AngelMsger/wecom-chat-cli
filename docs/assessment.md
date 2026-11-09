@@ -74,7 +74,7 @@ repository status was checked directly instead.
 | Prometheus | Same family adapters; no smart-bot service | None |
 | WeCom Calendar | Kit interfaces and local state precedent; calendar domain | None |
 | WeCom Channel | Closest security reference: independent broker, sockets, immutable provenance, durable outcomes | None; safejson/securefs sources ported with MIT attribution |
-| agent-cli-kit | Reuse pinned v0.8.1 output/errors/argv; no generic behavior changes | None |
+| agent-cli-kit | Reuse pinned v0.9.0 output/errors/argv; no generic behavior changes | None |
 | fx-devkit / workspace hub | Workspace registration is outside this repository | None |
 
 Intentional prerelease differences: explicit socket/bot/deployment flags instead

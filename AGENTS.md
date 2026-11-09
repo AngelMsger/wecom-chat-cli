@@ -44,3 +44,11 @@ The repository setup script is limited to AngelMsger/wecom-chat-cli and never
 changes sibling repositories. Read docs/releasing.md before changing that contract.
 For macOS tests canonicalize temporary fixture paths and use short Unix socket
 paths; never weaken production symlink/ancestor checks to make CI pass.
+
+Keep the public README aligned with the family: poster and slogan, feature and
+scope explanation, installation/quick start, commands, configuration, output and
+error contracts, Skill, development, documentation, related tools and license.
+Keep first-release status factual. README badges belong only inside the marked
+GitHub-only block; generated HTML must keep using local assets. Preserve accurate
+role/deadline/security limits when reorganizing introductory material. Record a
+poster generation prompt and update the canonical docs/image.png, never a sibling image.

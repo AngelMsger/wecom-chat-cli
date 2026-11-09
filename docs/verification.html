@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Verification for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><title>Verification — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/verification.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html" aria-current="page">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="verification-record">Verification record</h1>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Verification for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><meta property="og:image" content="https://angelmsger.github.io/wecom-chat-cli/image.png"><meta name="twitter:card" content="summary_large_image"><title>Verification — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/verification.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html" aria-current="page">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="verification-record">Verification record</h1>
 <p>Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and conversations in tests are synthetic.</p>
 <h2 id="completed-checks">Completed checks</h2>
 <table>
@@ -39,7 +39,7 @@
 </tr>
 <tr>
 <td>Dependency vulnerability scan (<code>make vuln</code>)</td>
-<td>No vulnerabilities found after updating x/sys to v0.44.0</td>
+<td>No vulnerabilities found with agent-cli-kit v0.9.0 and x/sys v0.44.0</td>
 </tr>
 <tr>
 <td>npm checksum/platform/destination tests</td>
@@ -89,14 +89,23 @@ passed all three required jobs on 2026-11-09: <code>test (ubuntu-latest)</code>,
 <code>test (macos-latest)</code> and <code>isolation</code>. This includes native macOS tests, compiled
 CLI/socket scenarios, generated site checks, npm installer checks and vulnerability
 scans; the Linux isolation job also builds all four platform artifacts.</p>
-<p>The first <a href="https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42591343348">Pages run</a>
-passed documentation/site checks but failed at <code>actions/configure-pages</code> because
-Pages had not been enabled. At bootstrap the repository was private, and the
-connected integration returned HTTP 403 for administration operations. This is
-not a successful public website deployment. The repository owner must resolve
-visibility/Pages settings and verify a subsequent deployment. See the
-<a href="releasing.html#repository-bootstrap">setup script and release guide</a> for the
-remaining repository settings; no release tag or npm version was published.</p>
+<p><a href="https://github.com/AngelMsger/wecom-chat-cli/pull/1">Dependabot PR #1</a> updates
+<code>agent-cli-kit</code> from v0.8.1 to v0.9.0. This is a routine dependency update, not a
+reported security advisory. The changed kit HTTP transport/doctor path is not
+used by Chat. Pinned-module race tests, CLI end-to-end tests, builds, generated
+documentation and vulnerability scanning passed before merging. The resulting
+main commit <code>eb1c459</code> passed all three jobs in
+<a href="https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42594589681">CI run 42594589681</a>.</p>
+<p>The repository is now public, and the owner has enabled GitHub Actions as the
+Pages source. <a href="https://github.com/AngelMsger/wecom-chat-cli/actions/runs/42594589654">Pages run 42594589654</a>
+successfully deployed the site; the public
+<a href="https://angelmsger.github.io/wecom-chat-cli/">documentation URL</a> returned HTTP 200
+on 2026-11-09. The bootstrap failure caused by disabled Pages is resolved.</p>
+<p>The connected integration still cannot manage repository administration settings
+(GitHub HTTP 403). Branch protection and other administration settings are not
+certified by these CI/Pages results. See the
+<a href="releasing.html#repository-bootstrap">setup script and release guide</a> for that
+separate owner setup. No release tag or npm version was published.</p>
 <h2 id="managed-environment-test-runner">Managed-environment test runner</h2>
 <p>This task's outer filesystem exposes <code>/</code> and <code>/tmp</code> as owned by UID 65534. The
 broker intentionally rejects that environment instead of weakening its trusted
@@ -136,7 +145,8 @@ tests prove restricted effects, not semantic classification quality.</li>
 registry publication or a versioned release. The
 cross-build/checksum/npm pipeline is prepared and tested locally.</li>
 </ul>
-<p>The source remains a prerelease. CI is verified above; public Pages deployment
-and repository administration settings remain separate acceptance items. The hard event cap and explicit coverage
-gaps must remain visible until a production retention/operations design is added.</p>
+<p>The source remains a prerelease. CI and public Pages deployment are verified
+above; repository administration and live deployment remain separate acceptance
+items. The hard event cap and explicit coverage gaps must remain visible until a
+production retention/operations design is added.</p>
 </article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>
