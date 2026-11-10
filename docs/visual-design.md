@@ -16,9 +16,9 @@ per-command Markdown URLs stable. Canonical URLs and sitemap use the repository'
 GitHub Pages project path. No remote scripts, fonts or image hosts are required.
 
 Check desktop and mobile widths, keyboard focus, the copy button, task scenarios,
-command search and browser errors before publishing a layout change. The
-prerelease banner and source-build instructions remain until a release actually
-exists. Do not imply that prompt-injection screening guarantees safe answers.
+command search and browser errors before publishing a layout change. Keep release
+status and installation instructions aligned with published artifacts.
+Do not imply that prompt-injection screening guarantees safe answers.
 
 ## Repository presentation
 

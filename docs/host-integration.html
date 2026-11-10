@@ -135,7 +135,7 @@ window and keep ambiguous work for operator recovery. Batch enqueue transactions
 or scheduler notifications if useful, while preserving every message ID, session
 order and short reply deadline; Chat does not coalesce separate user requests.</p>
 <h2 id="migration-and-acceptance">Migration and acceptance</h2>
-<p>This prerelease changes the watch from full history to pending references.
+<p>Version 0.3.0 changes the watch from 0.2.x full history to pending references.
 Audit/list and legacy watch cursors are intentionally rejected by the new feed;
 do not translate them by decoding opaque cursor bytes. Preserve the old cursor,
 host inbox, task grants and outcomes, stop the old trigger, then reconcile through

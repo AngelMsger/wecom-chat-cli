@@ -2,7 +2,7 @@
 package constants
 
 var (
-	Version   = "0.2.0-dev"
+	Version   = "0.3.0-dev"
 	Commit    = "none"
 	BuildTime = "unknown"
 )

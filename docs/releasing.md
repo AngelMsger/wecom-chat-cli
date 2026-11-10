@@ -4,8 +4,10 @@ WeCom Chat CLI follows the WeCom Calendar and Channel repository infrastructure:
 GitHub Actions validates changes, Pages serves `docs/`, and a maintainer's version
 tag triggers native binaries, checksums and npm OIDC publication.
 
-The source is **0.2.0-dev**. No version tag, GitHub Release or npm package has been
-published. Repository and Pages setup are distinct from releasing a binary.
+Version 0.2.0 established the public GitHub Release and npm package. The 0.3.0
+release adds quiet pending-event watches and requires the host cursor/output
+[migration](host-integration.md#migration-and-acceptance). Check the actual
+Release and npm version after every tag; Pages deployment alone is not a release.
 
 ## Repository bootstrap
 
@@ -72,10 +74,10 @@ publication automatically; there is no separate release approval click.
 The binaries receive version, commit and build time via `pkg/constants` and ldflags.
 `wecom-chat-cli version` reports that metadata as JSON.
 
-## npm setup before the first release
+## npm publisher setup
 
-The package is `@angelmsger/wecom-chat-cli`. The registry package and its trusted
-publisher must be provisioned before expecting automatic publication to succeed.
+The package is `@angelmsger/wecom-chat-cli`. Its registry package already exists.
+The package's trusted publisher must permit the workflow's publication action.
 This cannot be configured by a GitHub repository workflow alone. Follow
 [npm's trusted-publisher guidance](https://docs.npmjs.com/trusted-publishers/).
 If the package does not exist, its owner must perform the initial authorized
@@ -87,6 +89,10 @@ publication/bootstrap through npm before configuring the package publisher.
 | Repository | `wecom-chat-cli` |
 | Workflow filename | `release.yml` |
 | Environment | Leave blank, matching Calendar |
+
+Under Allowed actions, allow direct `npm publish`, which this workflow uses.
+A successful manual publish does not verify the OIDC publisher binding; verify
+the next new version's publish step and registry provenance.
 
 The workflow grants `id-token: write`, uses Node 24's bundled npm, and supplies no
 registry token or `registry-url`. Do not add a long-lived token or a custom

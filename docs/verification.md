@@ -152,11 +152,14 @@ as an ordinary user; it never silently reports an unexecuted check as passed.
   tests prove restricted effects, not semantic classification quality.
 - The trustworthiness of an external automated reviewer or its credentials.
 - Long-term ledger archival/compaction and high-volume durability/performance.
-- Production systemd installation, private WeCom deployments, Windows sockets,
-  registry publication or a versioned release. The
-  cross-build/checksum/npm pipeline is prepared and tested locally.
+- Production systemd installation, private WeCom deployments and Windows sockets.
 
-The source remains a prerelease. CI and public Pages deployment are verified
-above; repository administration and live deployment remain separate acceptance
+Version 0.2.0 is available through GitHub Releases and npm. On 2026-11-10 its npm
+tarball integrity, Linux amd64 installation and reported release commit were
+verified. Its initial npm publication was manual; that does not establish OIDC
+publisher readiness for later releases.
+
+CI and public Pages deployment are verified above; repository administration
+and live deployment remain separate acceptance
 items. The hard event cap and explicit coverage gaps must remain visible until a
 production retention/operations design is added.

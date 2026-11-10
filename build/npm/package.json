@@ -1,6 +1,6 @@
 {
   "name": "@angelmsger/wecom-chat-cli",
-  "version": "0.2.0-dev",
+  "version": "0.3.0",
   "description": "WeCom smart-bot conversations for agents with scoped tasks and independently reviewed replies.",
   "license": "MIT",
   "repository": {"type": "git", "url": "git+https://github.com/AngelMsger/wecom-chat-cli.git"},

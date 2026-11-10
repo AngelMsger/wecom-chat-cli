@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.3.0] - 2026-11-10
+
 - Index the latest assignment per session/epoch once per watch snapshot, retaining
   supersession by revoked/closed tasks without repeated suffix scans or session
   hashes. Bound watch long polls by the remaining invocation time, preserving
@@ -18,6 +20,8 @@
 - Document the actual pull-based supervisor sequence, zero-idle-inference target,
   transactional host enqueue/dedupe and ambiguous-job recovery. No Grokbot SDK,
   webhook trigger or end-to-end exactly-once guarantee is implied.
+
+## [0.2.0] - 2026-11-10
 
 - Adopt agent-cli-kit v0.9.0 after reviewing Dependabot PR #1 and validating the
   pinned dependency. Its changed HTTP redirect/doctor path is not used by Chat's

@@ -2,8 +2,10 @@
 <p>WeCom Chat CLI follows the WeCom Calendar and Channel repository infrastructure:
 GitHub Actions validates changes, Pages serves <code>docs/</code>, and a maintainer's version
 tag triggers native binaries, checksums and npm OIDC publication.</p>
-<p>The source is <strong>0.2.0-dev</strong>. No version tag, GitHub Release or npm package has been
-published. Repository and Pages setup are distinct from releasing a binary.</p>
+<p>Version 0.2.0 established the public GitHub Release and npm package. The 0.3.0
+release adds quiet pending-event watches and requires the host cursor/output
+<a href="host-integration.html#migration-and-acceptance">migration</a>. Check the actual
+Release and npm version after every tag; Pages deployment alone is not a release.</p>
 <h2 id="repository-bootstrap">Repository bootstrap</h2>
 <p>The intended public repository is <code>AngelMsger/wecom-chat-cli</code>; the documentation
 URL is <code>https://angelmsger.github.io/wecom-chat-cli/</code>. The bootstrap script uses the
@@ -57,9 +59,9 @@ the intended <code>vMAJOR.MINOR.PATCH</code> tag from that clean main commit.</l
 publication automatically; there is no separate release approval click.
 The binaries receive version, commit and build time via <code>pkg/constants</code> and ldflags.
 <code>wecom-chat-cli version</code> reports that metadata as JSON.</p>
-<h2 id="npm-setup-before-the-first-release">npm setup before the first release</h2>
-<p>The package is <code>@angelmsger/wecom-chat-cli</code>. The registry package and its trusted
-publisher must be provisioned before expecting automatic publication to succeed.
+<h2 id="npm-publisher-setup">npm publisher setup</h2>
+<p>The package is <code>@angelmsger/wecom-chat-cli</code>. Its registry package already exists.
+The package's trusted publisher must permit the workflow's publication action.
 This cannot be configured by a GitHub repository workflow alone. Follow
 <a href="https://docs.npmjs.com/trusted-publishers/">npm's trusted-publisher guidance</a>.
 If the package does not exist, its owner must perform the initial authorized
@@ -90,6 +92,9 @@ publication/bootstrap through npm before configuring the package publisher.</p>
 </tr>
 </tbody>
 </table>
+<p>Under Allowed actions, allow direct <code>npm publish</code>, which this workflow uses.
+A successful manual publish does not verify the OIDC publisher binding; verify
+the next new version's publish step and registry provenance.</p>
 <p>The workflow grants <code>id-token: write</code>, uses Node 24's bundled npm, and supplies no
 registry token or <code>registry-url</code>. Do not add a long-lived token or a custom
 publisher. The repository URL's <code>AngelMsger</code> casing must match provenance.
