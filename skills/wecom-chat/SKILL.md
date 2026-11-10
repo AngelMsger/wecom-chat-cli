@@ -3,7 +3,7 @@ name: wecom-chat
 description: Use WeCom Chat CLI inside a restricted worker to read one authorized smart-bot task, propose an independently reviewed reply, or report risk without changing user permissions.
 ---
 
-<!-- version: 0.2.0-dev -->
+<!-- version: 0.3.0 -->
 
 # WeCom Chat
 

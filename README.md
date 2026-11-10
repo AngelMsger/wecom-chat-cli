@@ -24,9 +24,9 @@ The CLI supplies transport, task scope, session invalidation and reply enforceme
 
 **Documentation:** [angelmsger.github.io/wecom-chat-cli](https://angelmsger.github.io/wecom-chat-cli/)
 
-**Status: 0.2.0-dev prerelease.** Linux/macOS CI and synthetic Linux isolation checks
-pass. The documentation site is live; no native release or npm version is published
-yet. Live WeCom tenant behavior and production deployment remain unverified.
+**Status: published for Linux and macOS.** Native releases and npm packages are
+available. Linux/macOS CI and synthetic Linux isolation checks pass.
+Live WeCom tenant behavior and production deployment remain unverified.
 See [verification](docs/verification.md) for evidence and limits.
 
 ## Features
@@ -75,8 +75,15 @@ CLI's private credentials, reset bot secrets or create enterprise-wide chat acce
 
 ## Installation
 
-Build from source until the first release. Go 1.25 or newer is required; `go.mod`
-selects the pinned build toolchain. Linux and macOS are supported targets.
+Install the npm package with Node.js 20 or newer on Linux or macOS:
+
+```sh
+npm install -g @angelmsger/wecom-chat-cli
+wecom-chat-cli version
+```
+
+Alternatively, build from source with Go 1.25 or newer; `go.mod` selects the
+pinned build toolchain:
 
 ```sh
 git clone https://github.com/AngelMsger/wecom-chat-cli.git
@@ -92,12 +99,13 @@ The examples below assume `wecom-chat-cli` is on your trusted setup session's PA
 export PATH="$PWD/bin:$PATH"
 ```
 
-`make cross` builds Linux/macOS amd64/arm64 executables. Future version tags will
-publish native binaries with SHA-256 checksums and the
-`@angelmsger/wecom-chat-cli` npm wrapper. **Do not run an npm install for an
-unpublished version.** The prepared installer verifies checksums and never
+`make cross` builds Linux/macOS amd64/arm64 executables. Version tags publish
+native binaries with SHA-256 checksums and the `@angelmsger/wecom-chat-cli`
+npm wrapper. The installer verifies checksums and never
 downloads a missing binary implicitly during an agent command. See
-[releasing](docs/releasing.md) for the publication contract and first-release setup.
+[releasing](docs/releasing.md) for the publication contract. Upgrading from 0.2.x
+to 0.3.x changes watch output and cursors; follow the
+[migration procedure](docs/host-integration.md#migration-and-acceptance).
 
 ## Quick start
 
@@ -341,7 +349,7 @@ The optional local container runner is documented in [verification](docs/verific
 
 Use a branch and pull request for changes. Read [CONTRIBUTING.md](CONTRIBUTING.md),
 [SECURITY.md](SECURITY.md) and the [release guide](docs/releasing.md). npm trusted
-publishing is prepared but requires package-owner setup before the first release.
+publishing uses the package's GitHub Actions publisher binding.
 A release tag is a deliberate publication action, not a test.
 
 ## Documentation

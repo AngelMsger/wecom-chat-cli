@@ -77,7 +77,7 @@ repository status was checked directly instead.
 | agent-cli-kit | Reuse pinned v0.9.0 output/errors/argv; no generic behavior changes | None |
 | fx-devkit / workspace hub | Workspace registration is outside this repository | None |
 
-Intentional prerelease differences: explicit socket/bot/deployment flags instead
+Intentional product differences: explicit socket/bot/deployment flags instead
 of named contexts; broker-only environment credentials instead of worker login;
 no raw/table/projection output; no automatic runtime update checks;
 companion Skill is a checked-in guide, without an install/handshake command.

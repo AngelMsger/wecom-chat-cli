@@ -13,9 +13,9 @@ administrator authority from their chat messages. The interface is framework-neu
 hosts such as grok bot provide the worker runtime, thread history and reviewer.
 The CLI supplies transport, task scope, session invalidation and reply enforcement.</p>
 <p><strong>Documentation:</strong> <a href="https://angelmsger.github.io/wecom-chat-cli/">angelmsger.github.io/wecom-chat-cli</a></p>
-<p><strong>Status: 0.2.0-dev prerelease.</strong> Linux/macOS CI and synthetic Linux isolation checks
-pass. The documentation site is live; no native release or npm version is published
-yet. Live WeCom tenant behavior and production deployment remain unverified.
+<p><strong>Status: published for Linux and macOS.</strong> Native releases and npm packages are
+available. Linux/macOS CI and synthetic Linux isolation checks pass.
+Live WeCom tenant behavior and production deployment remain unverified.
 See <a href="verification.html">verification</a> for evidence and limits.</p>
 <h2 id="features">Features</h2>
 <ul>
@@ -77,8 +77,12 @@ A competing long-connection subscriber can displace a bot connection; use a
 dedicated test bot for initial verification. The CLI does not import another
 CLI's private credentials, reset bot secrets or create enterprise-wide chat access.</p>
 <h2 id="installation">Installation</h2>
-<p>Build from source until the first release. Go 1.25 or newer is required; <code>go.mod</code>
-selects the pinned build toolchain. Linux and macOS are supported targets.</p>
+<p>Install the npm package with Node.js 20 or newer on Linux or macOS:</p>
+<pre><code class="language-sh">npm install -g @angelmsger/wecom-chat-cli
+wecom-chat-cli version
+</code></pre>
+<p>Alternatively, build from source with Go 1.25 or newer; <code>go.mod</code> selects the
+pinned build toolchain:</p>
 <pre><code class="language-sh">git clone https://github.com/AngelMsger/wecom-chat-cli.git
 cd wecom-chat-cli
 make build
@@ -88,12 +92,13 @@ bin/wecom-chat-cli --help
 <p>The examples below assume <code>wecom-chat-cli</code> is on your trusted setup session's PATH:</p>
 <pre><code class="language-sh">export PATH=&quot;$PWD/bin:$PATH&quot;
 </code></pre>
-<p><code>make cross</code> builds Linux/macOS amd64/arm64 executables. Future version tags will
-publish native binaries with SHA-256 checksums and the
-<code>@angelmsger/wecom-chat-cli</code> npm wrapper. <strong>Do not run an npm install for an
-unpublished version.</strong> The prepared installer verifies checksums and never
+<p><code>make cross</code> builds Linux/macOS amd64/arm64 executables. Version tags publish
+native binaries with SHA-256 checksums and the <code>@angelmsger/wecom-chat-cli</code>
+npm wrapper. The installer verifies checksums and never
 downloads a missing binary implicitly during an agent command. See
-<a href="releasing.html">releasing</a> for the publication contract and first-release setup.</p>
+<a href="releasing.html">releasing</a> for the publication contract. Upgrading from 0.2.x
+to 0.3.x changes watch output and cursors; follow the
+<a href="host-integration.html#migration-and-acceptance">migration procedure</a>.</p>
 <h2 id="quick-start">Quick start</h2>
 <h3 id="1-provision-the-operator-and-broker">1. Provision the operator and broker</h3>
 <p>Obtain a dedicated API-mode smart bot's Bot ID and Secret from trusted WeCom
@@ -390,7 +395,7 @@ Tests use synthetic credentials and conversations; no live WeCom messages are se
 The optional local container runner is documented in <a href="verification.html">verification</a>.</p>
 <p>Use a branch and pull request for changes. Read <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>,
 <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/SECURITY.md">SECURITY.md</a> and the <a href="releasing.html">release guide</a>. npm trusted
-publishing is prepared but requires package-owner setup before the first release.
+publishing uses the package's GitHub Actions publisher binding.
 A release tag is a deliberate publication action, not a test.</p>
 <h2 id="documentation">Documentation</h2>
 <table>

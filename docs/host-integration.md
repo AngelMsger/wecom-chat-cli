@@ -159,7 +159,7 @@ order and short reply deadline; Chat does not coalesce separate user requests.
 
 ## Migration and acceptance
 
-This prerelease changes the watch from full history to pending references.
+Version 0.3.0 changes the watch from 0.2.x full history to pending references.
 Audit/list and legacy watch cursors are intentionally rejected by the new feed;
 do not translate them by decoding opaque cursor bytes. Preserve the old cursor,
 host inbox, task grants and outcomes, stop the old trigger, then reconcile through

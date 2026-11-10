@@ -1,6 +1,6 @@
 # Agent guide
 
-This is a prerelease WeCom smart-bot bridge, separate from Calendar and Channel.
+This is a WeCom smart-bot bridge, separate from Calendar and Channel.
 Read CONTRIBUTING.md and docs/technical-design.md before changes. Use English
 for engineering material and agent-cli-kit for output, errors and argv handling.
 

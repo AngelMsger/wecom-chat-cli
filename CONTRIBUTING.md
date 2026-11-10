@@ -14,5 +14,5 @@ Use a branch and pull request after repository bootstrap; main requires Linux/ma
 CI and Linux isolation. Never bypass those protections. Run `make docs` after any
 command or narrative change, keeping Markdown canonical. The static site has no
 remote runtime assets. Follow [releasing](docs/releasing.md) for tag-driven builds,
-Pages configuration and the pending first npm publisher setup. Do not tag merely
+Pages configuration and the npm publisher setup. Do not tag merely
 to test a release. See [SECURITY.md](SECURITY.md) for private reporting.
