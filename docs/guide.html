@@ -118,7 +118,11 @@ environment, then deliberately start:</p>
 </code></pre>
 <h3 id="2-receive-a-message-and-issue-its-task">2. Receive a message and issue its task</h3>
 <p>The trusted supervisor reads the <strong>operator</strong> socket. Watches are bounded and
-observe local pushed events; they do not poll the enterprise message archive.</p>
+observe local pushed events; they do not poll the enterprise message archive.
+Run the supervisor as ordinary code, with no model calls while idle. A fresh watch
+starts now and emits only references to live unassigned messages. Use <code>--replay</code>
+for an intentional pending backlog, or <code>--cursor</code> to resume after durable host
+enqueue. Reuse the cursor across bounded invocations, including idle ones.</p>
 <pre><code class="language-sh">wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
   --bot-id BOT_ID --deployment support event watch --duration 60s --max-events 100
 
@@ -129,7 +133,9 @@ wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
 <code>task_token</code> once. Capture it programmatically without logging it or placing it
 in the model's context, and provision <code>WECOM_CHAT_TASK_TOKEN</code> only to that worker's
 tool executor. Lost delivery requires operator inspection, revocation and reissue;
-a submitted draft cannot be replaced with a new grant.</p>
+a submitted draft cannot be replaced with a new grant.
+Only then does the host submit a model job. The CLI has no built-in Grokbot job
+API or webhook trigger; see <a href="host-integration.html#what-starts-a-model-task">the interaction sequence</a>.</p>
 <h3 id="3-let-the-worker-read-and-propose">3. Let the worker read and propose</h3>
 <p>With its task environment provisioned, the worker uses only the <strong>agent</strong> socket:</p>
 <pre><code class="language-sh">wecom-chat-cli --socket /run/wecom-chat-agent/bridge.sock \
@@ -279,7 +285,7 @@ the broker cannot guarantee the model selects an appropriate one.</p>
 <tr>
 <td><code>event list</code> / <code>get</code> / <code>watch</code></td>
 <td>Operator</td>
-<td>Bounded inbox discovery, inspection and monitoring</td>
+<td>Full audit reads; quiet-by-default pending reference stream</td>
 </tr>
 <tr>
 <td><code>task issue</code> / <code>revoke</code></td>
@@ -331,7 +337,12 @@ the broker cannot guarantee the model selects an appropriate one.</p>
 There is no raw/table output or field projection that strips the boundary.</p>
 <p>Lists follow <code>{items, next, has_more}</code>. Reuse <code>next</code> as <code>--cursor</code> with the same
 broker/policy; NDJSON emits records on stdout and pagination notices on stderr.
-A watch cursor is an output checkpoint, not proof of successful model execution.</p>
+A watch cursor is an output checkpoint, not proof of successful model execution.
+The terminal notice labels it <code>checkpoint_stage: emitted</code>, with an <code>emitted</code> count.
+The host must durably deduplicate/enqueue before saving progress and keep job results
+separately. Watch references omit message bodies; <code>task get</code> reads authorized
+content on demand. Old watch/list cursors require an explicit
+<a href="host-integration.html#migration-and-acceptance">migration</a>.</p>
 <p>Mutations accept <code>--dry-run</code>. Applying a client mutation requires
 <code>--allow-writes</code>; approval/rejection, revoke, session reset and operator memory changes
 also require <code>--yes</code>. Those flags express invocation intent and never grant

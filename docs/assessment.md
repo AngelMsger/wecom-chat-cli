@@ -89,3 +89,35 @@ Free-text bot replies require independent operator approval of the exact draft
 digest. Unattended sends require explicit template policy and contain only reviewed
 literal text, without substitutions. The bot sends in its own identity. No worker
 can select an event, approve itself or change a sender's access permissions.
+
+## Monitoring cost review (2026-11-10)
+
+The family's [event-driven integration guide](https://github.com/AngelMsger/agent-clis-workspace/blob/9c88e4c/docs/event-driven-agent-integration.md)
+sets the target: ordinary software owns collection, filtering, supervision and
+reliable handoff; idle monitoring starts no model turns. Output, durable acceptance
+and completed reasoning are separate stages. Prefer compact references and fetch
+only the context needed for an accepted task. Preserve source coverage and resolve
+ambiguous work instead of erasing cursors or automatically replaying actions.
+
+Chat already had pushed intake, durable callback dedupe, bounded long polling and
+isolated event grants. The local gaps were replaying history on every fresh watch,
+returning full bodies and already assigned/closed records, and calling stdout
+progress `delivered`. The pending-reference stream fixes those defaults. The host
+still owns durable scheduling and actual model submission; no Grokbot integration
+or measured end-to-end saving is claimed. See [host integration](host-integration.md).
+
+| Project | Existing observation primitive | Applicability to this change |
+| --- | --- | --- |
+| WeCom Chat | Local callback ledger and operator watch | Apply quiet baseline, pending references and explicit emitted progress |
+| WeCom Channel | Durable webhook relay (`internal/relay`) | Reference for handoff/idempotency; Chat keeps the local grant boundary |
+| WeCom Calendar | ETag mirror sync (`internal/sync/sync.go`) | Same zero-idle-model target; no Chat feed or grant changes |
+| Bitbucket | Bounded activity reads (`internal/app/activity_filter.go`) | Host observation responsibility applies; no local stream change |
+| Confluence | Remote subscriptions (`internal/app/page_watch.go`) | A subscription is not an agent-job dispatcher; retain provider meaning |
+| Jenkins | Byte-offset log follow (`internal/app/build_log.go`) | Streaming stdout is not a durable work queue; no Chat grant semantics |
+| Jira | Bounded worklogs (`internal/app/worklog.go`) | Same separation of retrieval and model scheduling; no change here |
+| OpenObserve | Timestamp query tail (`internal/app/search.go`) | Needs its own coverage/recovery contract; outside this product's fix |
+| Prometheus | Metric queries (`internal/app/query.go`) | Meaningful alert transitions belong to an adapter, not Chat's pending feed |
+| agent-cli-kit | Shared CLI libraries | Reuse current output/errors; no speculative shared relay extraction |
+
+Only Chat is changed. Separate messages keep separate grants even within one
+session; notification batching must not discard questions or outlive reply TTLs.

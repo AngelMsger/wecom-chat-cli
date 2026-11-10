@@ -134,6 +134,10 @@ wecom-chat-cli broker serve --policy /etc/wecom-chat/broker.json
 
 The trusted supervisor reads the **operator** socket. Watches are bounded and
 observe local pushed events; they do not poll the enterprise message archive.
+Run the supervisor as ordinary code, with no model calls while idle. A fresh watch
+starts now and emits only references to live unassigned messages. Use `--replay`
+for an intentional pending backlog, or `--cursor` to resume after durable host
+enqueue. Reuse the cursor across bounded invocations, including idle ones.
 
 ```sh
 wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
@@ -148,6 +152,8 @@ Use an event ID returned by the inbox. The issuance response discloses a secret
 in the model's context, and provision `WECOM_CHAT_TASK_TOKEN` only to that worker's
 tool executor. Lost delivery requires operator inspection, revocation and reissue;
 a submitted draft cannot be replaced with a new grant.
+Only then does the host submit a model job. The CLI has no built-in Grokbot job
+API or webhook trigger; see [the interaction sequence](docs/host-integration.md#what-starts-a-model-task).
 
 ### 3. Let the worker read and propose
 
@@ -245,7 +251,7 @@ the broker cannot guarantee the model selects an appropriate one.
 | `auth guide`, `config example`, `config validate` | Local setup | Credential guidance and protected policy validation |
 | `broker serve` | Operator service | Maintain WebSocket intake and worker/operator sockets |
 | `status` | Operator | Connectivity, scope and coverage |
-| `event list` / `get` / `watch` | Operator | Bounded inbox discovery, inspection and monitoring |
+| `event list` / `get` / `watch` | Operator | Full audit reads; quiet-by-default pending reference stream |
 | `task issue` / `revoke` | Operator | Create or revoke an event-scoped worker grant |
 | `task get` | Worker | Read only the granted task |
 | `reply propose` | Worker | Submit a draft or select a policy-approved literal |
@@ -268,6 +274,11 @@ There is no raw/table output or field projection that strips the boundary.
 Lists follow `{items, next, has_more}`. Reuse `next` as `--cursor` with the same
 broker/policy; NDJSON emits records on stdout and pagination notices on stderr.
 A watch cursor is an output checkpoint, not proof of successful model execution.
+The terminal notice labels it `checkpoint_stage: emitted`, with an `emitted` count.
+The host must durably deduplicate/enqueue before saving progress and keep job results
+separately. Watch references omit message bodies; `task get` reads authorized
+content on demand. Old watch/list cursors require an explicit
+[migration](docs/host-integration.md#migration-and-acceptance).
 
 Mutations accept `--dry-run`. Applying a client mutation requires
 `--allow-writes`; approval/rejection, revoke, session reset and operator memory changes

@@ -37,7 +37,9 @@ func TestCLIRealSocketsAndStreaming(t *testing.T) {
 	}
 	defer os.RemoveAll(root)
 	root, err = filepath.EvalSymlinks(root)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	bin := filepath.Join(root, "bridge")
 	build := exec.Command("go", "build", "-o", bin, "./cmd/wecom-chat-cli")
 	build.Dir = ".."
@@ -113,8 +115,8 @@ func TestCLIRealSocketsAndStreaming(t *testing.T) {
 		t.Fatalf("operator list: %v %s", err, diag)
 	}
 	ev := s.View().Events[0]
-	out, diag, err = call(p.OperatorSocket, "", "", "event", "watch", "--duration", "1s", "--max-events", "1")
-	if err != nil || strings.Count(out, "\n") != 1 || !strings.Contains(diag, "delivered") {
+	out, diag, err = call(p.OperatorSocket, "", "", "event", "watch", "--replay", "--duration", "1s", "--max-events", "1")
+	if err != nil || strings.Count(out, "\n") != 1 || !strings.Contains(diag, "emitted") || strings.Contains(diag, "delivered") || strings.Contains(out, "Hello from Alice") {
 		t.Fatalf("watch: %v %s", err, diag)
 	}
 	var line struct {
@@ -127,8 +129,26 @@ func TestCLIRealSocketsAndStreaming(t *testing.T) {
 	}
 	msg("2", "bob", "Private Bob question")
 	out, diag, err = call(p.OperatorSocket, "", "", "event", "watch", "--cursor", line.Data.Cursor, "--duration", "1s", "--max-events", "1")
-	if err != nil || !strings.Contains(out, "Private Bob question") || strings.Contains(out, "Hello from Alice") {
+	if err != nil || !strings.Contains(out, s.View().Events[1].ID) || strings.Contains(out, "Private Bob question") || strings.Contains(out, "Hello from Alice") {
 		t.Fatalf("resume: %v %s", err, diag)
+	}
+	// Quiet startup and idle bounds are ordinary process work. Persisting this
+	// terminal checkpoint lets the next process resume arrivals between sessions.
+	out, diag, err = call(p.OperatorSocket, "", "", "event", "watch", "--duration", "1s")
+	var checkpoint struct {
+		Notice struct {
+			Cursor  string `json:"cursor"`
+			Stage   string `json:"checkpoint_stage"`
+			Emitted int    `json:"emitted"`
+		} `json:"_notice"`
+	}
+	if err != nil || out != "" || json.Unmarshal([]byte(diag), &checkpoint) != nil || checkpoint.Notice.Cursor == "" || checkpoint.Notice.Stage != "emitted" || checkpoint.Notice.Emitted != 0 {
+		t.Fatalf("idle watch: %v %s %s", err, out, diag)
+	}
+	msg("between", "bob", "Arrived between watches")
+	out, diag, err = call(p.OperatorSocket, "", "", "event", "watch", "--cursor", checkpoint.Notice.Cursor, "--duration", "1s", "--max-events", "1")
+	if err != nil || !strings.Contains(out, s.View().Events[2].ID) || strings.Contains(out, "Arrived between watches") {
+		t.Fatalf("bounded process resume lost an arrival: %v %s %s", err, out, diag)
 	}
 	if _, _, err = call(p.AgentSocket, "", "", "event", "list"); err == nil {
 		t.Fatal("worker enumerated inbox")

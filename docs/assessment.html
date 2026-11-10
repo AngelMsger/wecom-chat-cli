@@ -125,4 +125,80 @@ therefore owns subscription/reconnect, with no retry of remote writes.</p>
 digest. Unattended sends require explicit template policy and contain only reviewed
 literal text, without substitutions. The bot sends in its own identity. No worker
 can select an event, approve itself or change a sender's access permissions.</p>
+<h2 id="monitoring-cost-review-2026-11-10">Monitoring cost review (2026-11-10)</h2>
+<p>The family's <a href="https://github.com/AngelMsger/agent-clis-workspace/blob/9c88e4c/docs/event-driven-agent-integration.md">event-driven integration guide</a>
+sets the target: ordinary software owns collection, filtering, supervision and
+reliable handoff; idle monitoring starts no model turns. Output, durable acceptance
+and completed reasoning are separate stages. Prefer compact references and fetch
+only the context needed for an accepted task. Preserve source coverage and resolve
+ambiguous work instead of erasing cursors or automatically replaying actions.</p>
+<p>Chat already had pushed intake, durable callback dedupe, bounded long polling and
+isolated event grants. The local gaps were replaying history on every fresh watch,
+returning full bodies and already assigned/closed records, and calling stdout
+progress <code>delivered</code>. The pending-reference stream fixes those defaults. The host
+still owns durable scheduling and actual model submission; no Grokbot integration
+or measured end-to-end saving is claimed. See <a href="host-integration.html">host integration</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Existing observation primitive</th>
+<th>Applicability to this change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WeCom Chat</td>
+<td>Local callback ledger and operator watch</td>
+<td>Apply quiet baseline, pending references and explicit emitted progress</td>
+</tr>
+<tr>
+<td>WeCom Channel</td>
+<td>Durable webhook relay (<code>internal/relay</code>)</td>
+<td>Reference for handoff/idempotency; Chat keeps the local grant boundary</td>
+</tr>
+<tr>
+<td>WeCom Calendar</td>
+<td>ETag mirror sync (<code>internal/sync/sync.go</code>)</td>
+<td>Same zero-idle-model target; no Chat feed or grant changes</td>
+</tr>
+<tr>
+<td>Bitbucket</td>
+<td>Bounded activity reads (<code>internal/app/activity_filter.go</code>)</td>
+<td>Host observation responsibility applies; no local stream change</td>
+</tr>
+<tr>
+<td>Confluence</td>
+<td>Remote subscriptions (<code>internal/app/page_watch.go</code>)</td>
+<td>A subscription is not an agent-job dispatcher; retain provider meaning</td>
+</tr>
+<tr>
+<td>Jenkins</td>
+<td>Byte-offset log follow (<code>internal/app/build_log.go</code>)</td>
+<td>Streaming stdout is not a durable work queue; no Chat grant semantics</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Bounded worklogs (<code>internal/app/worklog.go</code>)</td>
+<td>Same separation of retrieval and model scheduling; no change here</td>
+</tr>
+<tr>
+<td>OpenObserve</td>
+<td>Timestamp query tail (<code>internal/app/search.go</code>)</td>
+<td>Needs its own coverage/recovery contract; outside this product's fix</td>
+</tr>
+<tr>
+<td>Prometheus</td>
+<td>Metric queries (<code>internal/app/query.go</code>)</td>
+<td>Meaningful alert transitions belong to an adapter, not Chat's pending feed</td>
+</tr>
+<tr>
+<td>agent-cli-kit</td>
+<td>Shared CLI libraries</td>
+<td>Reuse current output/errors; no speculative shared relay extraction</td>
+</tr>
+</tbody>
+</table>
+<p>Only Chat is changed. Separate messages keep separate grants even within one
+session; notification batching must not discard questions or outlive reply TTLs.</p>
 </article></main><footer class="wrap footer"><span>Built for agents. Designed for humans.</span><a href="index.html">WeCom Chat CLI · MIT ↗</a></footer></body></html>

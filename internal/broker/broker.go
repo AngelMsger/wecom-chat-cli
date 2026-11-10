@@ -197,6 +197,7 @@ type Request struct {
 	Template          string `json:"template,omitempty"`
 	ExpectedEpoch     int64  `json:"expected_epoch,omitempty"`
 	IncludeSuppressed bool   `json:"include_suppressed,omitempty"`
+	Replay            bool   `json:"replay,omitempty"`
 	BotID             string `json:"bot_id"`
 	Deployment        string `json:"deployment"`
 	Cursor            string `json:"cursor,omitempty"`
@@ -218,20 +219,24 @@ type cursor struct {
 	Ledger   string `json:"ledger"`
 	Policy   string `json:"policy"`
 	Sequence int64  `json:"sequence"`
+	Feed     string `json:"feed,omitempty"`
 }
 
 func (b *Broker) cursor(d state.Snapshot, seq int64) string {
-	v, _ := json.Marshal(cursor{d.ID, b.Policy.Digest(), seq})
+	return b.feedCursor(d, seq, "")
+}
+func (b *Broker) feedCursor(d state.Snapshot, seq int64, feed string) string {
+	v, _ := json.Marshal(cursor{d.ID, b.Policy.Digest(), seq, feed})
 	return base64.RawURLEncoding.EncodeToString(v)
 }
-func (b *Broker) sequence(d state.Snapshot, raw string) (int64, error) {
+func (b *Broker) sequence(d state.Snapshot, raw, feed string) (int64, error) {
 	if raw == "" {
 		return 0, nil
 	}
 	var c cursor
 	v, err := base64.RawURLEncoding.DecodeString(raw)
-	if err != nil || safejson.Decode(v, &c, true) != nil || c.Ledger != d.ID || c.Policy != b.Policy.Digest() || c.Sequence < 0 || c.Sequence > int64(len(d.Events)) {
-		return 0, e.New(e.CategoryConflict, "CURSOR_SCOPE", "Cursor does not match this ledger, policy or sequence range.")
+	if err != nil || safejson.Decode(v, &c, true) != nil || c.Ledger != d.ID || c.Policy != b.Policy.Digest() || c.Feed != feed || c.Sequence < 0 || c.Sequence > int64(len(d.Events)) {
+		return 0, e.New(e.CategoryConflict, "CURSOR_SCOPE", "Cursor does not match this ledger, policy, feed or sequence range. Preserve the host inbox and reconcile before selecting a new baseline or explicit replay.")
 	}
 	return c.Sequence, nil
 }
@@ -263,17 +268,24 @@ func (b *Broker) eligible(ev state.Event) bool {
 }
 func (b *Broker) events(r Request, admin bool) (Page, error) {
 	d := b.Store.View()
-	seq, err := b.sequence(d, r.Cursor)
+	feed := ""
+	if r.Op == "event.watch" {
+		feed = pendingFeed
+	}
+	seq, err := b.sequence(d, r.Cursor, feed)
 	if err != nil {
 		return Page{}, err
 	}
-	page := Page{Items: []any{}, Next: b.cursor(d, seq)}
+	if feed != "" && r.Cursor == "" && !r.Replay {
+		seq = int64(len(d.Events))
+	}
+	page := Page{Items: []any{}, Next: b.feedCursor(d, seq, feed)}
 	if r.Limit < 1 || r.Limit > 100 || r.WaitSeconds < 0 || r.WaitSeconds > 25 {
 		return page, e.New(e.CategoryUsage, "INVALID_BOUNDS", "Use limit 1..100 and wait-seconds 0..25.")
 	}
 	now := b.Now().Unix()
 	for _, ev := range d.Events[seq:] {
-		page.Next = b.cursor(d, ev.Sequence)
+		page.Next = b.feedCursor(d, ev.Sequence, feed)
 		if ev.Received+int64(b.Policy.RetentionSeconds) <= now {
 			continue
 		}
@@ -281,7 +293,14 @@ func (b *Broker) events(r Request, admin bool) (Page, error) {
 		if !admin && (!b.eligible(ev) || ev.Decision != "deliver" || mem.Active(now) && (mem.Status == "blocked" || mem.Status == "quarantined")) {
 			continue
 		}
-		page.Items = append(page.Items, b.eventView(d, ev))
+		if feed != "" {
+			if !b.pending(d, ev) {
+				continue
+			}
+			page.Items = append(page.Items, b.eventReference(d, ev))
+		} else {
+			page.Items = append(page.Items, b.eventView(d, ev))
+		}
 		if len(page.Items) == r.Limit {
 			page.HasMore = ev.Sequence < int64(len(d.Events))
 			break
@@ -320,23 +339,8 @@ func (b *Broker) Handle(ctx context.Context, r Request, admin bool) (any, error)
 			return nil, e.New(e.CategoryNotFound, "EVENT_NOT_FOUND", "No event matches that ID.")
 		}
 		return b.eventView(d, *ev), nil
-	case "event.list":
-		b.mu.Lock()
-		ch := b.changed
-		b.mu.Unlock()
-		page, err := b.events(r, r.IncludeSuppressed)
-		if err != nil || len(page.Items) > 0 || r.WaitSeconds == 0 {
-			return page, err
-		}
-		t := time.NewTimer(time.Duration(r.WaitSeconds) * time.Second)
-		defer t.Stop()
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-ch:
-		case <-t.C:
-		}
-		return b.events(r, r.IncludeSuppressed)
+	case "event.list", "event.watch":
+		return b.pollEvents(ctx, r)
 	case "task.issue":
 		return b.issue(r)
 	case "task.revoke":

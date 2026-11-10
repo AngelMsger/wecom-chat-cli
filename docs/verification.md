@@ -2,6 +2,27 @@
 
 Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and conversations in tests are synthetic.
 
+## Monitoring change verification (2026-11-10)
+
+The pending-reference watch passed pinned-module `make lint test e2e build
+docs-check site-check release-tests`, the three npm installer tests and `make vuln`
+(no vulnerabilities found). Race and real CLI/socket tests used the existing
+network-disabled container runner because the cloud host maps root ancestors to
+an untrusted owner. Production filesystem checks were not weakened.
+
+New cases cover a quiet baseline, explicit replay, metadata-only records,
+duplicate callback intake, watch/audit cursor separation, idle and filtered
+long polls, emitted-stage checkpoints and arrivals between bounded CLI processes.
+Closed-work cases include expired deadlines, old connection/session, blocked
+users, existing/revoked grants, drafts, reports, sent/uncertain outcomes,
+superseded events and reopened durable state. Busy sessions retain later work
+without bypassing issuance serialization; worker authority remains unchanged.
+
+These checks prove local discovery/output behavior, not Grokbot's durable inbox,
+job submission, crash recovery or actual model-invocation counts. No live bot or
+host was activated. Earlier CI and OS-isolation results below describe their
+recorded commits; they are not fresh results for this change.
+
 ## Completed checks
 
 | Check | Result |

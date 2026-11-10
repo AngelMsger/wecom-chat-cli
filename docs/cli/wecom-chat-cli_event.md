@@ -28,4 +28,4 @@ wecom-chat-cli event [flags]
 * [wecom-chat-cli](wecom-chat-cli.md)	 - Isolate agents from untrusted WeCom smart-bot conversations
 * [wecom-chat-cli event get](wecom-chat-cli_event_get.md)	 - Inspect one event and its durable reply outcome
 * [wecom-chat-cli event list](wecom-chat-cli_event_list.md)	 - Read one bounded page; reuse its cursor
-* [wecom-chat-cli event watch](wecom-chat-cli_event_watch.md)	 - Stream bounded NDJSON with resumable event cursors
+* [wecom-chat-cli event watch](wecom-chat-cli_event_watch.md)	 - Stream new pending event references; explicit replay or cursor resumes history

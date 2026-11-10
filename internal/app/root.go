@@ -152,16 +152,27 @@ func NewRootCmd() *cobra.Command {
 	var watchCursor string
 	var duration time.Duration
 	var maxEvents int
-	watch := &cobra.Command{Use: "watch", Short: "Stream bounded NDJSON with resumable event cursors", Args: cobra.NoArgs, RunE: func(c *cobra.Command, _ []string) error {
+	var replay bool
+	watch := &cobra.Command{Use: "watch", Short: "Stream new pending event references; explicit replay or cursor resumes history", Long: "A trusted ordinary supervisor runs this bounded stream, never a scheduled model turn.\nBy default start at the current ledger head and emit only metadata for live, unassigned\nevents. Use --replay for retained pending work or --cursor to resume. Output is not\ndurable host acceptance: enqueue and deduplicate before saving progress or starting a model.", Args: cobra.NoArgs, RunE: func(c *cobra.Command, _ []string) error {
 		if duration < time.Second || duration > time.Hour || maxEvents < 1 || maxEvents > 10000 || !config.ID(botID) || !config.ID(deployment) {
 			return e.New(e.CategoryUsage, "INVALID_WATCH", "Use duration 1s..1h, max-events 1..10000 and explicit bot/deployment scope.")
+		}
+		if replay && watchCursor != "" {
+			return e.New(e.CategoryUsage, "INVALID_WATCH", "Choose either --cursor or --replay, not both.")
 		}
 		ctx, cancel := context.WithTimeout(c.Context(), duration)
 		defer cancel()
 		count := 0
 		next := watchCursor
+		replayPending := replay
 		for count < maxEvents && ctx.Err() == nil {
-			v, err := broker.Call(ctx, socket, broker.Request{Op: "event.list", BotID: botID, Deployment: deployment, Cursor: next, Limit: min(100, maxEvents-count), WaitSeconds: 25})
+			// Obtain a quiet baseline before a cancellable long poll, so an idle
+			// bounded watch still returns a concrete resumable cursor.
+			wait := 25
+			if next == "" {
+				wait = 0
+			}
+			v, err := broker.Call(ctx, socket, broker.Request{Op: "event.watch", BotID: botID, Deployment: deployment, Cursor: next, Replay: replayPending, Limit: min(100, maxEvents-count), WaitSeconds: wait})
 			if err != nil {
 				if ctx.Err() != nil {
 					break
@@ -179,13 +190,15 @@ func NewRootCmd() *cobra.Command {
 				count++
 			}
 			next = p.Next
+			replayPending = false
 		}
-		output.EmitNotice(c.ErrOrStderr(), map[string]any{"_notice": map[string]any{"cursor": next, "delivered": count, "complete": false, "reason": "watch_bound_reached"}})
+		output.EmitNotice(c.ErrOrStderr(), map[string]any{"_notice": map[string]any{"cursor": next, "emitted": count, "checkpoint_stage": "emitted", "complete": false, "reason": "watch_bound_reached"}})
 		return nil
 	}}
-	watch.Flags().StringVar(&watchCursor, "cursor", "", "Last successfully handled event cursor")
+	watch.Flags().StringVar(&watchCursor, "cursor", "", "Watch cursor saved after durable host enqueue; not a model-completion checkpoint")
+	watch.Flags().BoolVar(&replay, "replay", false, "Explicitly replay retained live, unassigned events instead of starting now")
 	watch.Flags().DurationVar(&duration, "duration", time.Minute, "Total observation deadline, at most 1h")
-	watch.Flags().IntVar(&maxEvents, "max-events", 100, "Maximum delivered events")
+	watch.Flags().IntVar(&maxEvents, "max-events", 100, "Maximum emitted event references")
 	events.AddCommand(watch)
 	root.AddCommand(events)
 	task := &cobra.Command{Use: "task", Short: "Issue or consume single-event worker grants"}
