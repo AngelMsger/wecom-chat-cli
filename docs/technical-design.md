@@ -99,21 +99,50 @@ fields, duplicate keys and fields unrelated to the selected operation fail, even
 on dry-run. Neither URL parameters nor request bodies can select authority.
 
 Worker-only operations are `task.get`, `reply.propose`, `memory.report`.
-Operator-only operations are `status`, `event.list/get`, `task.issue/revoke`,
+Operator-only operations are `status`, `event.list/get/watch`, `task.issue/revoke`,
 `session.reset`, `reply.get/approve/reject`, `memory.list/set`.
 Direct send and model-controlled quarantine have no API/CLI compatibility aliases.
 
-The operator inbox uses limits 1..100 and waits 0..25 seconds. CLI watch repeats
-local long polls within explicit count/deadline bounds; it never polls WeCom.
-Cursors bind ledger ID, policy digest and sequence. They are checkpoints, not
+The operator inbox uses limits 1..100 and waits 0..25 seconds. CLI watch uses
+`event.watch`, repeating local long polls within explicit count/deadline bounds;
+it never polls WeCom. A fresh watch pins the current ledger head; `--replay`
+explicitly selects retained pending work. Its `pending_v1` feed returns metadata
+references only for live, admitted, unassigned events. Assigned/revoked, closed,
+expired, stale-session/connection and superseded work requires operator audit or
+recovery rather than an automatic second model job. A busy session's later
+unassigned events remain visible for the host queue; issuance still serializes them.
+Filtered notifications do not finish a long poll or renew its deadline.
+Pending discovery builds one latest-assignment index per nonempty snapshot scan.
+The index uses the session's conversation type/ID, sender and epoch (bot/deployment
+are fixed by the ledger), and includes revoked, expired and completed grants.
+Each candidate then uses a constant-time lookup instead of scanning later events
+and hashing their session keys repeatedly.
+
+The watch protocol also accepts `wait_millis` in 0..25000, mutually exclusive with
+nonzero `wait_seconds`; other operations reject this field. The CLI uses the
+remaining observation budget minus 100 ms for returning the response, capped at
+25 seconds. It stops polling when only this response budget remains, so a bounded
+watch may return slightly early. Filtered progress reaches the client before its
+request deadline under normal operation. A stalled/failed response still retains
+the last known cursor; no progress beyond successfully emitted references is
+inferred from cancellation.
+
+Cursors bind ledger ID, policy digest, feed and sequence. They are checkpoints, not
 credentials. Default reads omit suppressed/blocked records; `--include-suppressed`
-allows operator inspection of redacted metadata. `event.get` is an operator audit
+allows operator list inspection of redacted metadata. Audit/list and legacy watch
+cursors cannot be used in the pending feed. `event.get` is an operator audit
 read. Expired raw text is hidden even before physical maintenance erasure.
 
 Hosts must durably enqueue/deduplicate and maintain their own execution checkpoint.
 A watch cursor acknowledges emitted data, not successful model execution. Already
 read content cannot be recalled by later revocation. Supervisors must not attach
 inbox content to an administrator model conversation or auto-approve model output.
+The CLI first obtains an immediate baseline before waiting, so even an idle bounded
+invocation reports a concrete cursor. Its terminal notice says `emitted` and
+`checkpoint_stage: emitted`. The host atomically enqueues/deduplicates references
+before saving this cursor and tracks processing separately. The host, not this
+broker, owns model-job submission, retries, leases and ambiguous-job recovery;
+see the [host sequence and migration contract](host-integration.md).
 
 ## Task capabilities
 

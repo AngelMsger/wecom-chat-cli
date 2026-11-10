@@ -1,6 +1,13 @@
 ## wecom-chat-cli event watch
 
-Stream bounded NDJSON with resumable event cursors
+Stream new pending event references; explicit replay or cursor resumes history
+
+### Synopsis
+
+A trusted ordinary supervisor runs this bounded stream, never a scheduled model turn.
+By default start at the current ledger head and emit only metadata for live, unassigned
+events. Use --replay for retained pending work or --cursor to resume. Output is not
+durable host acceptance: enqueue and deduplicate before saving progress or starting a model.
 
 ```
 wecom-chat-cli event watch [flags]
@@ -9,10 +16,11 @@ wecom-chat-cli event watch [flags]
 ### Options
 
 ```
-      --cursor string       Last successfully handled event cursor
+      --cursor string       Watch cursor saved after durable host enqueue; not a model-completion checkpoint
       --duration duration   Total observation deadline, at most 1h (default 1m0s)
   -h, --help                help for watch
-      --max-events int      Maximum delivered events (default 100)
+      --max-events int      Maximum emitted event references (default 100)
+      --replay              Explicitly replay retained live, unassigned events instead of starting now
 ```
 
 ### Options inherited from parent commands

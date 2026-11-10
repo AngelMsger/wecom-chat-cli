@@ -1,5 +1,34 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Verification for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><meta property="og:image" content="https://angelmsger.github.io/wecom-chat-cli/image.png"><meta name="twitter:card" content="summary_large_image"><title>Verification — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/verification.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html" aria-current="page">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="verification-record">Verification record</h1>
 <p>Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and conversations in tests are synthetic.</p>
+<h2 id="monitoring-change-verification-2026-11-10">Monitoring change verification (2026-11-10)</h2>
+<p>PR #4 performance follow-up: the original predicate benchmark for 100 pending
+events followed by 9,900 unrelated assigned events measured 1.01–1.50 s and about
+602 MB allocated per iteration on this Linux amd64 environment. With a per-snapshot
+assignment index, the same benchmark (including index construction) measured
+0.81–0.83 ms and 30,400 bytes allocated. These are predicate measurements excluding
+snapshot cloning and response encoding, not end-to-end latency or token savings.
+Run <code>go test ./internal/broker -run '^$' -bench '^BenchmarkPendingDiscovery$' -benchmem</code> to reproduce the fixture. Session/epoch tests preserve supersession by
+revoked, expired and completed tasks and separation across users/conversations.</p>
+<p>A real CLI/Unix-socket regression failed on the old code when a filtered callback
+arrived during <code>event watch --cursor ... --duration 1s</code>: the terminal cursor stayed
+at its input value. The regression checks the returned cursor against an immediate
+broker read and confirms stdout stays empty. Millisecond server waits now leave
+a response budget before the outer deadline so filtered progress can return.</p>
+<p>The pending-reference watch passed pinned-module <code>make lint test e2e build docs-check site-check release-tests</code>, the three npm installer tests and <code>make vuln</code>
+(no vulnerabilities found). Race and real CLI/socket tests used the existing
+network-disabled container runner because the cloud host maps root ancestors to
+an untrusted owner. Production filesystem checks were not weakened.</p>
+<p>New cases cover a quiet baseline, explicit replay, metadata-only records,
+duplicate callback intake, watch/audit cursor separation, idle and filtered
+long polls, emitted-stage checkpoints and arrivals between bounded CLI processes.
+Closed-work cases include expired deadlines, old connection/session, blocked
+users, existing/revoked grants, drafts, reports, sent/uncertain outcomes,
+superseded events and reopened durable state. Busy sessions retain later work
+without bypassing issuance serialization; worker authority remains unchanged.</p>
+<p>These checks prove local discovery/output behavior, not Grokbot's durable inbox,
+job submission, crash recovery or actual model-invocation counts. No live bot or
+host was activated. Earlier CI and OS-isolation results below describe their
+recorded commits; they are not fresh results for this change.</p>
 <h2 id="completed-checks">Completed checks</h2>
 <table>
 <thead>

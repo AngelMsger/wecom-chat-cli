@@ -23,6 +23,13 @@ The tool executor receives one `WECOM_CHAT_TASK_TOKEN`; do not print, expose,
 copy into prompts or replace it. Never obtain the bot Secret, another task token
 or the operator socket. Model confidence is not authorization.
 
+The ordinary host supervisor waits for pending event references, durably
+deduplicates/enqueues them and issues a grant before starting this worker. Do not
+run scheduled model checks, poll an idle watcher, monitor broker health or reload
+message history to discover work. Watch output is an emitted checkpoint, not host
+acceptance or model completion. A specific Grokbot task-submission adapter is not
+included; never infer that a CLI process or webhook alone can wake the host.
+
 ## Worker workflow
 
 1. Run `task get`. It returns only the grant's event and its full trust envelope,

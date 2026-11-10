@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Index the latest assignment per session/epoch once per watch snapshot, retaining
+  supersession by revoked/closed tasks without repeated suffix scans or session
+  hashes. Bound watch long polls by the remaining invocation time, preserving
+  filtered progress before the CLI deadline instead of rescanning it next run.
+
+- Make `event watch` quiet by default, with explicit `--replay` and a separate
+  policy/ledger-bound pending feed. Emit metadata references for live unassigned
+  messages, retaining full content in scoped task and operator audit reads.
+  Exclude closed, assigned, expired and stale work before host scheduling; preserve
+  later messages in busy sessions for ordinary host queuing.
+- Keep filtered long-poll wakeups silent and return resumable idle checkpoints.
+  Rename the misleading watch `delivered` count to `emitted`, explicitly marking
+  the checkpoint stage. Legacy watch/list cursors require deliberate migration.
+- Document the actual pull-based supervisor sequence, zero-idle-inference target,
+  transactional host enqueue/dedupe and ambiguous-job recovery. No Grokbot SDK,
+  webhook trigger or end-to-end exactly-once guarantee is implied.
+
 - Adopt agent-cli-kit v0.9.0 after reviewing Dependabot PR #1 and validating the
   pinned dependency. Its changed HTTP redirect/doctor path is not used by Chat's
   dedicated WebSocket and Unix-socket transports.

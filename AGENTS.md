@@ -22,6 +22,23 @@ policy, epoch, expiry, connection and revocation before every task operation/sen
 Keep same-session grants serialized and invalidate stale work on session reset.
 Keep state locked, scope-bound, bounded and private; validate all path ancestors.
 
+Keep idle monitoring outside model turns. A trusted ordinary host supervisor owns
+the durable inbox, event dedupe, enqueue cursor and model-job lifecycle; the broker
+does not invoke a model or expose arbitrary webhook/command hooks. Watch defaults
+to a quiet baseline and pending metadata references; explicit replay and resume
+must preserve feed/ledger/policy binding. Output progress is only `emitted`, never
+accepted or processed. Do not reissue existing grants or collapse distinct messages
+to reduce cost. Keep busy-session work queued until issuance succeeds. Test idle
+and filtered periods, duplicate callbacks, cursor scope, bounded-process resume,
+closed/expired tasks and restart recovery. Follow docs/host-integration.md and the
+family's event-driven-agent-integration guide before changing this contract.
+Keep pending discovery linear per snapshot: index the latest assignment by session
+and epoch, including revoked/closed tasks, instead of rescanning suffixes for each
+candidate. Fit server long polls inside the caller's remaining observation budget
+with time to return filtered progress; never advance a cursor past un-emitted work.
+Cover large unrelated histories with a benchmark and filtered arrivals during a
+short resumed CLI process with a regression test.
+
 Run make lint test e2e build docs-check site-check release-tests, npm test --prefix
 build/npm, and make vuln. Tests use synthetic credentials and local
 WebSocket peers only. Do not activate a live bot, push or publish for validation.

@@ -190,7 +190,7 @@ Usage:
 Available Commands:
   get         Inspect one event and its durable reply outcome
   list        Read one bounded page; reuse its cursor
-  watch       Stream bounded NDJSON with resumable event cursors
+  watch       Stream new pending event references; explicit replay or cursor resumes history
 
 Global Flags:
       --allow-writes        Permit this invocation's mutation; grants no server authority
@@ -247,16 +247,17 @@ Global Flags:
 
 ## wecom-chat-cli event watch
 
-Stream bounded NDJSON with resumable event cursors
+Stream new pending event references; explicit replay or cursor resumes history
 
 ```text
 Usage:
   wecom-chat-cli event watch [flags]
 
 Flags:
-      --cursor string       Last successfully handled event cursor
+      --cursor string       Watch cursor saved after durable host enqueue; not a model-completion checkpoint
       --duration duration   Total observation deadline, at most 1h (default 1m0s)
-      --max-events int      Maximum delivered events (default 100)
+      --max-events int      Maximum emitted event references (default 100)
+      --replay              Explicitly replay retained live, unassigned events instead of starting now
 
 Global Flags:
       --allow-writes        Permit this invocation's mutation; grants no server authority

@@ -78,19 +78,46 @@ per listener. Every request requires the expected bot/deployment. Unknown JSON
 fields, duplicate keys and fields unrelated to the selected operation fail, even
 on dry-run. Neither URL parameters nor request bodies can select authority.</p>
 <p>Worker-only operations are <code>task.get</code>, <code>reply.propose</code>, <code>memory.report</code>.
-Operator-only operations are <code>status</code>, <code>event.list/get</code>, <code>task.issue/revoke</code>,
+Operator-only operations are <code>status</code>, <code>event.list/get/watch</code>, <code>task.issue/revoke</code>,
 <code>session.reset</code>, <code>reply.get/approve/reject</code>, <code>memory.list/set</code>.
 Direct send and model-controlled quarantine have no API/CLI compatibility aliases.</p>
-<p>The operator inbox uses limits 1..100 and waits 0..25 seconds. CLI watch repeats
-local long polls within explicit count/deadline bounds; it never polls WeCom.
-Cursors bind ledger ID, policy digest and sequence. They are checkpoints, not
+<p>The operator inbox uses limits 1..100 and waits 0..25 seconds. CLI watch uses
+<code>event.watch</code>, repeating local long polls within explicit count/deadline bounds;
+it never polls WeCom. A fresh watch pins the current ledger head; <code>--replay</code>
+explicitly selects retained pending work. Its <code>pending_v1</code> feed returns metadata
+references only for live, admitted, unassigned events. Assigned/revoked, closed,
+expired, stale-session/connection and superseded work requires operator audit or
+recovery rather than an automatic second model job. A busy session's later
+unassigned events remain visible for the host queue; issuance still serializes them.
+Filtered notifications do not finish a long poll or renew its deadline.
+Pending discovery builds one latest-assignment index per nonempty snapshot scan.
+The index uses the session's conversation type/ID, sender and epoch (bot/deployment
+are fixed by the ledger), and includes revoked, expired and completed grants.
+Each candidate then uses a constant-time lookup instead of scanning later events
+and hashing their session keys repeatedly.</p>
+<p>The watch protocol also accepts <code>wait_millis</code> in 0..25000, mutually exclusive with
+nonzero <code>wait_seconds</code>; other operations reject this field. The CLI uses the
+remaining observation budget minus 100 ms for returning the response, capped at
+25 seconds. It stops polling when only this response budget remains, so a bounded
+watch may return slightly early. Filtered progress reaches the client before its
+request deadline under normal operation. A stalled/failed response still retains
+the last known cursor; no progress beyond successfully emitted references is
+inferred from cancellation.</p>
+<p>Cursors bind ledger ID, policy digest, feed and sequence. They are checkpoints, not
 credentials. Default reads omit suppressed/blocked records; <code>--include-suppressed</code>
-allows operator inspection of redacted metadata. <code>event.get</code> is an operator audit
+allows operator list inspection of redacted metadata. Audit/list and legacy watch
+cursors cannot be used in the pending feed. <code>event.get</code> is an operator audit
 read. Expired raw text is hidden even before physical maintenance erasure.</p>
 <p>Hosts must durably enqueue/deduplicate and maintain their own execution checkpoint.
 A watch cursor acknowledges emitted data, not successful model execution. Already
 read content cannot be recalled by later revocation. Supervisors must not attach
-inbox content to an administrator model conversation or auto-approve model output.</p>
+inbox content to an administrator model conversation or auto-approve model output.
+The CLI first obtains an immediate baseline before waiting, so even an idle bounded
+invocation reports a concrete cursor. Its terminal notice says <code>emitted</code> and
+<code>checkpoint_stage: emitted</code>. The host atomically enqueues/deduplicates references
+before saving this cursor and tracks processing separately. The host, not this
+broker, owns model-job submission, retries, leases and ambiguous-job recovery;
+see the <a href="host-integration.html">host sequence and migration contract</a>.</p>
 <h2 id="task-capabilities">Task capabilities</h2>
 <p>Only the operator issues a task for a live admitted event. A token combines an
 opaque event locator and 256 random secret bits; only its hash is persisted. The
