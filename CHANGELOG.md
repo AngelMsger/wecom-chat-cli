@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Index the latest assignment per session/epoch once per watch snapshot, retaining
+  supersession by revoked/closed tasks without repeated suffix scans or session
+  hashes. Bound watch long polls by the remaining invocation time, preserving
+  filtered progress before the CLI deadline instead of rescanning it next run.
+
 - Make `event watch` quiet by default, with explicit `--replay` and a separate
   policy/ledger-bound pending feed. Emit metadata references for live unassigned
   messages, retaining full content in scoped task and operator audit reads.

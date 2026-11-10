@@ -9,19 +9,38 @@ import (
 
 const pendingFeed = "pending_v1"
 
+// Bot and deployment are fixed for a broker snapshot. These are the remaining
+// session-key inputs, plus the epoch; using the tuple avoids hashing every row.
+type assignmentScope struct {
+	chatType, chatID, userID string
+	epoch                    int64
+}
+
+func assignmentKey(ev state.Event) assignmentScope {
+	return assignmentScope{ev.ChatType, ev.ChatID, ev.UserID, ev.SessionEpoch}
+}
+
+func latestAssignments(events []state.Event) map[assignmentScope]int64 {
+	latest := make(map[assignmentScope]int64)
+	for _, ev := range events {
+		// Even revoked, expired or completed tasks supersede older unassigned
+		// work. Do not reuse the live-task predicate here.
+		if ev.Task != nil {
+			key := assignmentKey(ev)
+			latest[key] = max(latest[key], ev.Sequence)
+		}
+	}
+	return latest
+}
+
 // A stream discovers unassigned work, not an audit history or a job queue.
 // Busy sessions remain visible: the host queues them and issues a grant before
 // invoking a model. Existing grants require explicit operator recovery.
-func (b *Broker) pending(d state.Snapshot, ev state.Event) bool {
-	if b.usable(d, &ev) != nil || ev.Task != nil || ev.Proposal != nil || ev.Report != nil || ev.ReplyStatus != "" || ev.TaskAttempts >= 8 {
+func (b *Broker) pending(d state.Snapshot, ev state.Event, latest map[assignmentScope]int64) bool {
+	if ev.Task != nil || ev.Proposal != nil || ev.Report != nil || ev.ReplyStatus != "" || ev.TaskAttempts >= 8 || latest[assignmentKey(ev)] > ev.Sequence {
 		return false
 	}
-	for _, other := range d.Events[ev.Sequence:] {
-		if other.Task != nil && other.SessionEpoch == ev.SessionEpoch && b.sessionKey(other) == b.sessionKey(ev) {
-			return false
-		}
-	}
-	return true
+	return b.usable(d, &ev) == nil
 }
 
 func (b *Broker) eventReference(d state.Snapshot, ev state.Event) any {
@@ -39,7 +58,11 @@ func (b *Broker) eventReference(d state.Snapshot, ev state.Event) any {
 func (b *Broker) pollEvents(ctx context.Context, r Request) (Page, error) {
 	// One deadline covers all filtered wakeups. Capture the notification channel
 	// before reading state, then pin the initial head/skipped progress exactly once.
-	timer := time.NewTimer(time.Duration(r.WaitSeconds) * time.Second)
+	wait := time.Duration(r.WaitSeconds) * time.Second
+	if r.WaitMillis != 0 {
+		wait = time.Duration(r.WaitMillis) * time.Millisecond
+	}
+	timer := time.NewTimer(wait)
 	defer timer.Stop()
 	for {
 		if err := ctx.Err(); err != nil {
@@ -49,7 +72,7 @@ func (b *Broker) pollEvents(ctx context.Context, r Request) (Page, error) {
 		ch := b.changed
 		b.mu.Unlock()
 		page, err := b.events(r, r.IncludeSuppressed)
-		if err != nil || len(page.Items) > 0 || r.WaitSeconds == 0 {
+		if err != nil || len(page.Items) > 0 || wait == 0 {
 			return page, err
 		}
 		r.Cursor, r.Replay = page.Next, false

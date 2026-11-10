@@ -32,6 +32,12 @@ to reduce cost. Keep busy-session work queued until issuance succeeds. Test idle
 and filtered periods, duplicate callbacks, cursor scope, bounded-process resume,
 closed/expired tasks and restart recovery. Follow docs/host-integration.md and the
 family's event-driven-agent-integration guide before changing this contract.
+Keep pending discovery linear per snapshot: index the latest assignment by session
+and epoch, including revoked/closed tasks, instead of rescanning suffixes for each
+candidate. Fit server long polls inside the caller's remaining observation budget
+with time to return filtered progress; never advance a cursor past un-emitted work.
+Cover large unrelated histories with a benchmark and filtered arrivals during a
+short resumed CLI process with a regression test.
 
 Run make lint test e2e build docs-check site-check release-tests, npm test --prefix
 build/npm, and make vuln. Tests use synthetic credentials and local

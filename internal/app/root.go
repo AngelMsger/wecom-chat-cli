@@ -165,14 +165,21 @@ func NewRootCmd() *cobra.Command {
 		count := 0
 		next := watchCursor
 		replayPending := replay
+		deadline, _ := ctx.Deadline()
 		for count < maxEvents && ctx.Err() == nil {
+			// Leave time for the broker to encode and return filtered progress
+			// before the invocation cancels its HTTP request. Stop instead of
+			// spinning with zero-wait polls when only the response budget remains.
+			waitMillis := min(25000, int((time.Until(deadline)-100*time.Millisecond)/time.Millisecond))
+			if waitMillis <= 0 {
+				break
+			}
 			// Obtain a quiet baseline before a cancellable long poll, so an idle
 			// bounded watch still returns a concrete resumable cursor.
-			wait := 25
 			if next == "" {
-				wait = 0
+				waitMillis = 0
 			}
-			v, err := broker.Call(ctx, socket, broker.Request{Op: "event.watch", BotID: botID, Deployment: deployment, Cursor: next, Replay: replayPending, Limit: min(100, maxEvents-count), WaitSeconds: wait})
+			v, err := broker.Call(ctx, socket, broker.Request{Op: "event.watch", BotID: botID, Deployment: deployment, Cursor: next, Replay: replayPending, Limit: min(100, maxEvents-count), WaitMillis: waitMillis})
 			if err != nil {
 				if ctx.Err() != nil {
 					break

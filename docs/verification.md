@@ -4,6 +4,22 @@ Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and 
 
 ## Monitoring change verification (2026-11-10)
 
+PR #4 performance follow-up: the original predicate benchmark for 100 pending
+events followed by 9,900 unrelated assigned events measured 1.01–1.50 s and about
+602 MB allocated per iteration on this Linux amd64 environment. With a per-snapshot
+assignment index, the same benchmark (including index construction) measured
+0.81–0.83 ms and 30,400 bytes allocated. These are predicate measurements excluding
+snapshot cloning and response encoding, not end-to-end latency or token savings.
+Run `go test ./internal/broker -run '^$' -bench '^BenchmarkPendingDiscovery$'
+-benchmem` to reproduce the fixture. Session/epoch tests preserve supersession by
+revoked, expired and completed tasks and separation across users/conversations.
+
+A real CLI/Unix-socket regression failed on the old code when a filtered callback
+arrived during `event watch --cursor ... --duration 1s`: the terminal cursor stayed
+at its input value. The regression checks the returned cursor against an immediate
+broker read and confirms stdout stays empty. Millisecond server waits now leave
+a response budget before the outer deadline so filtered progress can return.
+
 The pending-reference watch passed pinned-module `make lint test e2e build
 docs-check site-check release-tests`, the three npm installer tests and `make vuln`
 (no vulnerabilities found). Race and real CLI/socket tests used the existing

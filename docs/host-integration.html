@@ -60,7 +60,12 @@ change before issuance. Distinct messages are not collapsed into one reply grant
 and <code>coverage</code>. It contains no message body, task credential, callback request ID
 or connection generation. The worker obtains content with <code>task get</code>; operator
 <code>event list/get</code> remain bounded full audit reads. Filtered wakeups continue waiting
-within the original long-poll deadline; idle polls emit no records.</p>
+within the original long-poll deadline; idle polls emit no records.
+Long polls fit within the CLI's remaining duration, reserving 100 ms for response
+delivery. A bounded watch may finish slightly early so its terminal cursor can
+include filtered arrivals even during a short resumed invocation. A transport
+failure can still require replay from the last saved cursor; never infer progress
+past a reference that was not emitted and durably enqueued.</p>
 <p>The terminal stderr notice uses <code>emitted</code> and <code>checkpoint_stage: emitted</code>.
 It reports bytes written to stdout, not durable handoff or completed inference.
 Do not inject this notice, connection logs or health probes into model context.

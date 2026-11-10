@@ -22,7 +22,7 @@ import (
 // mode or authority. This also applies to dry-run and raw socket requests.
 func validateRequest(r Request) error {
 	allowed := map[string]string{
-		"status": "", "event.list": "cursor limit wait include", "event.watch": "cursor limit wait replay", "event.get": "event",
+		"status": "", "event.list": "cursor limit wait include", "event.watch": "cursor limit wait wait_millis replay", "event.get": "event",
 		"task.issue": "event", "task.revoke": "event", "session.reset": "event epoch",
 		"task.get": "", "reply.propose": "text template", "memory.report": "reason",
 		"reply.get": "event", "reply.approve": "event digest", "reply.reject": "event digest",
@@ -35,7 +35,7 @@ func validateRequest(r Request) error {
 	if r.Replay && r.Cursor != "" {
 		return e.New(e.CategoryUsage, "INVALID_WATCH", "Choose either a saved watch cursor or explicit replay, not both.")
 	}
-	used := map[string]bool{"event": r.EventID != "", "cursor": r.Cursor != "", "limit": r.Limit != 0, "wait": r.WaitSeconds != 0, "include": r.IncludeSuppressed, "replay": r.Replay, "text": r.Text != "", "template": r.Template != "", "digest": r.Digest != "", "reason": r.Reason != "", "user": r.UserID != "", "status": r.Status != "", "epoch": r.ExpectedEpoch != 0}
+	used := map[string]bool{"event": r.EventID != "", "cursor": r.Cursor != "", "limit": r.Limit != 0, "wait": r.WaitSeconds != 0, "wait_millis": r.WaitMillis != 0, "include": r.IncludeSuppressed, "replay": r.Replay, "text": r.Text != "", "template": r.Template != "", "digest": r.Digest != "", "reason": r.Reason != "", "user": r.UserID != "", "status": r.Status != "", "epoch": r.ExpectedEpoch != 0}
 	for field, present := range used {
 		if present && !strings.Contains(" "+fields+" ", " "+field+" ") {
 			return e.New(e.CategoryUsage, "UNEXPECTED_FIELD", "This operation does not accept target, mode or unrelated fields.")

@@ -203,6 +203,7 @@ type Request struct {
 	Cursor            string `json:"cursor,omitempty"`
 	Limit             int    `json:"limit,omitempty"`
 	WaitSeconds       int    `json:"wait_seconds,omitempty"`
+	WaitMillis        int    `json:"wait_millis,omitempty"`
 	EventID           string `json:"event_id,omitempty"`
 	Text              string `json:"text,omitempty"`
 	Reason            string `json:"reason,omitempty"`
@@ -280,8 +281,12 @@ func (b *Broker) events(r Request, admin bool) (Page, error) {
 		seq = int64(len(d.Events))
 	}
 	page := Page{Items: []any{}, Next: b.feedCursor(d, seq, feed)}
-	if r.Limit < 1 || r.Limit > 100 || r.WaitSeconds < 0 || r.WaitSeconds > 25 {
-		return page, e.New(e.CategoryUsage, "INVALID_BOUNDS", "Use limit 1..100 and wait-seconds 0..25.")
+	if r.Limit < 1 || r.Limit > 100 || r.WaitSeconds < 0 || r.WaitSeconds > 25 || r.WaitMillis < 0 || r.WaitMillis > 25000 || r.WaitSeconds != 0 && r.WaitMillis != 0 {
+		return page, e.New(e.CategoryUsage, "INVALID_BOUNDS", "Use limit 1..100 and either wait_seconds 0..25 or watch wait_millis 0..25000.")
+	}
+	var latest map[assignmentScope]int64
+	if feed != "" && seq < int64(len(d.Events)) {
+		latest = latestAssignments(d.Events)
 	}
 	now := b.Now().Unix()
 	for _, ev := range d.Events[seq:] {
@@ -294,7 +299,7 @@ func (b *Broker) events(r Request, admin bool) (Page, error) {
 			continue
 		}
 		if feed != "" {
-			if !b.pending(d, ev) {
+			if !b.pending(d, ev, latest) {
 				continue
 			}
 			page.Items = append(page.Items, b.eventReference(d, ev))

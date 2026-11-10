@@ -161,6 +161,10 @@ func TestWatchCursorBindingAndAuthority(t *testing.T) {
 		func(r *Request) { r.IncludeSuppressed = true },
 		func(r *Request) { r.Op = "event.list" },
 		func(r *Request) { r.Limit = 0 },
+		func(r *Request) { r.WaitMillis = -1 },
+		func(r *Request) { r.WaitMillis = 25001 },
+		func(r *Request) { r.WaitSeconds, r.WaitMillis = 1, 100 },
+		func(r *Request) { r.Op, r.Cursor, r.WaitMillis = "event.list", "", 100 },
 	} {
 		bad := r
 		mutate(&bad)
@@ -179,11 +183,43 @@ func TestWatchCursorBindingAndAuthority(t *testing.T) {
 	}
 }
 
+func TestPendingAssignmentsPreserveSessionAndEpochBoundaries(t *testing.T) {
+	b, d := pendingBenchmarkFixture(100)
+	candidate := d.Events[0]
+	for _, scenario := range []struct {
+		name       string
+		modify     func(*state.Event)
+		supersedes bool
+	}{
+		{"assigned", func(*state.Event) {}, true},
+		{"revoked", func(ev *state.Event) { ev.Task.Revoked = true }, true},
+		{"completed", func(ev *state.Event) { ev.ReplyStatus = "sent" }, true},
+		{"expired-task", func(ev *state.Event) { ev.Task.Expires = 1 }, true},
+		{"old-epoch", func(ev *state.Event) { ev.SessionEpoch++ }, false},
+		{"other-sender", func(ev *state.Event) { ev.UserID = "bob" }, false},
+		{"other-chat", func(ev *state.Event) { ev.ChatID = "group1" }, false},
+		{"other-chat-type", func(ev *state.Event) { ev.ChatType = "group" }, false},
+		{"unassigned", func(ev *state.Event) { ev.Task = nil }, false},
+		{"older-task", func(ev *state.Event) { ev.Sequence = candidate.Sequence - 1 }, false},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			other := candidate
+			other.Sequence = 101
+			other.Task = &state.Task{}
+			scenario.modify(&other)
+			latest := latestAssignments([]state.Event{other, candidate})
+			if got := b.pending(d, candidate, latest); got == scenario.supersedes {
+				t.Fatalf("pending=%v, supersedes=%v", got, scenario.supersedes)
+			}
+		})
+	}
+}
+
 func TestWatchFilteredWakeupsStaySilentAndKeepDeadline(t *testing.T) {
 	b, _ := setup(t)
 	r := watchRequest()
 	r.Cursor = watchPage(t, b, r).Next
-	r.WaitSeconds = 1
+	r.WaitMillis = 100
 	type result struct {
 		page any
 		err  error

@@ -72,6 +72,11 @@ and `coverage`. It contains no message body, task credential, callback request I
 or connection generation. The worker obtains content with `task get`; operator
 `event list/get` remain bounded full audit reads. Filtered wakeups continue waiting
 within the original long-poll deadline; idle polls emit no records.
+Long polls fit within the CLI's remaining duration, reserving 100 ms for response
+delivery. A bounded watch may finish slightly early so its terminal cursor can
+include filtered arrivals even during a short resumed invocation. A transport
+failure can still require replay from the last saved cursor; never infer progress
+past a reference that was not emitted and durably enqueued.
 
 The terminal stderr notice uses `emitted` and `checkpoint_stage: emitted`.
 It reports bytes written to stdout, not durable handoff or completed inference.
