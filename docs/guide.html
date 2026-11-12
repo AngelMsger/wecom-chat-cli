@@ -31,6 +31,11 @@ original callback, recipient, task and policy. Approval names the exact digest.<
 operator can quarantine or block a person. A false report cannot ban future messages.</li>
 <li><strong>Durable send outcomes</strong> — persist the attempt before sending; interrupted or
 ambiguous outcomes are terminal and never automatically replayed.</li>
+<li><strong>Event-driven host delivery</strong> — a separate trusted relay batches pending references,
+persists retries and request pacing, and supports explicit ACK or Grok routine
+HTTP acceptance. Supervisor claims deduplicate before business processing;
+<a href="host-integration.html#durable-webhook-delivery">host integration</a> explains
+the single-event grant boundary and deadline limits.</li>
 <li><strong>Agent-friendly interfaces</strong> — JSON/NDJSON, fixed provenance, bounded cursors,
 structured errors and write previews follow the shared CLI conventions.</li>
 <li><strong>Companion Skill</strong> — a checked-in <code>wecom-chat</code> guide describes the worker
@@ -124,7 +129,9 @@ environment, then deliberately start:</p>
 <h3 id="2-receive-a-message-and-issue-its-task">2. Receive a message and issue its task</h3>
 <p>The trusted supervisor reads the <strong>operator</strong> socket. Watches are bounded and
 observe local pushed events; they do not poll the enterprise message archive.
-Run the supervisor as ordinary code, with no model calls while idle. A fresh watch
+Run the supervisor as ordinary code, with no model calls while idle. For webhook
+delivery, use the separate <a href="host-integration.html#durable-webhook-delivery">durable relay</a>
+as the collection owner instead of a second watch loop. A fresh watch
 starts now and emits only references to live unassigned messages. Use <code>--replay</code>
 for an intentional pending backlog, or <code>--cursor</code> to resume after durable host
 enqueue. Reuse the cursor across bounded invocations, including idle ones.</p>

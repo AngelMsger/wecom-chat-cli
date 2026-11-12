@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Add trusted-service `relay run/status/resolve` with a durable metadata outbox,
+  quiet baseline or explicit replay, bounded session/epoch batching, deadline
+  filtering, persisted pacing/retries and terminal delivery errors. Use the
+  Channel explicit-ACK contract or opt-in Grok HTTP-200 acceptance; ambiguous
+  requests stop until evidence-based reconciliation, never automatic replay.
+- Add supervisor-owned `relay claim/consume`: atomic batch/event deduplication,
+  retained work for recovery and separate processed/failed status. Claims do not
+  issue task grants, approve replies or give a model operator access. Update
+  the companion Skill to 0.4.0 and document the remaining trusted host adapter.
+- Add explicit scope/progress metadata to operator watch pages without changing
+  existing event-reference or opaque-cursor formats.
+- Pin Go 1.27.4, including the net/http fix for GO-2026-6859, as HTTP webhook
+  delivery now uses the family transport.
+
 ## [0.3.0] - 2026-11-10
 
 - Index the latest assignment per session/epoch once per watch snapshot, retaining

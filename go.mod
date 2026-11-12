@@ -2,7 +2,7 @@ module github.com/angelmsger/wecom-chat-cli
 
 go 1.25.0
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	github.com/angelmsger/agent-cli-kit v0.9.0

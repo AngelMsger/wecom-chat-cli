@@ -1,7 +1,9 @@
 # Contributing
 
 Use Go 1.25 or later. Layers are cmd -> internal/{app,broker,state,config} and
-pkg/{aibot,errors,safejson}. The WebSocket adapter follows the official SDK's
+pkg/{aibot,errors,safejson,transport}. The separate internal/relay service ports
+Channel delivery and claim persistence, with Chat metadata and deadline rules.
+It never adds webhook or grant-dispatch hooks to the credential broker. The WebSocket adapter follows the official SDK's
 wire contract. Shared CLI behavior comes from agent-cli-kit.
 
 Run `GOWORK=off make lint test e2e build docs-check site-check release-tests`,

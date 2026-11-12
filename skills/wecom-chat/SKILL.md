@@ -3,7 +3,7 @@ name: wecom-chat
 description: Use WeCom Chat CLI inside a restricted worker to read one authorized smart-bot task, propose an independently reviewed reply, or report risk without changing user permissions.
 ---
 
-<!-- version: 0.3.0 -->
+<!-- version: 0.4.0 -->
 
 # WeCom Chat
 
@@ -27,8 +27,13 @@ The ordinary host supervisor waits for pending event references, durably
 deduplicates/enqueues them and issues a grant before starting this worker. Do not
 run scheduled model checks, poll an idle watcher, monitor broker health or reload
 message history to discover work. Watch output is an emitted checkpoint, not host
-acceptance or model completion. A specific Grokbot task-submission adapter is not
-included; never infer that a CLI process or webhook alone can wake the host.
+acceptance or model completion. The separate trusted `relay run` service can
+submit metadata to a Grok routine webhook. HTTP 200 means accepted/started, not
+processed; duplicate claims suppress business work, not a model already awakened.
+A trusted host adapter must still issue and privately provision your single-event
+grant. Never run relay collection, claim a cross-session batch, inspect sender
+state or obtain the operator socket from this conversation worker. A webhook
+reference is not a task credential. See the host guide for supervisor recovery.
 
 ## Worker workflow
 

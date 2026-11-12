@@ -1,7 +1,8 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Host integration for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><meta property="og:image" content="https://angelmsger.github.io/wecom-chat-cli/image.png"><meta name="twitter:card" content="summary_large_image"><title>Host integration — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/host-integration.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html" aria-current="page">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="integrating-a-host-such-as-grok-bot">Integrating a host such as grok bot</h1>
-<p>The host is <strong>grok bot</strong>; its concrete SDK was not supplied. The CLI therefore
-provides an enforced, framework-neutral task/review protocol. It does not create
-host threads, provision sandboxes or claim a specific grok bot plugin integration.</p>
+<p>The CLI supports Grok routine webhook notifications through a separate trusted
+<code>relay run</code> process, alongside the existing pull-based supervisor protocol.
+The host must still provide isolated workers, single-event token provisioning,
+thread history and independent review. A webhook does not provide those capabilities.</p>
 <h2 id="what-starts-a-model-task">What starts a model task</h2>
 <p>&quot;Wake the model&quot; means that ordinary host code submits one eligible job to the
 host's model runtime. It does not mean the CLI calls an LLM or can start Grokbot
@@ -32,13 +33,9 @@ not an implemented Grokbot SDK adapter. Verify that the host can durably accept
 a job from ordinary code without first invoking a model. A cron prompt asking
 the model to run <code>event watch</code>, or a model repeatedly checking an idle process,
 still spends model turns. Zero idle stdout alone does not prove zero inference.</p>
-<p>Channel CLI's optional <code>relay run</code> uses the opposite delivery direction: an
-ordinary relay POSTs an immutable batch to a fixed authenticated receiver. That
-receiver deduplicates and durably enqueues before returning the exact batch ack;
-it then uses the host's real job API. A bare webhook or HTTP 2xx is not such an
-integration. Chat deliberately uses a host-owned local supervisor to preserve
-its operator-socket and short-lived-grant boundary; it adds no arbitrary URL or
-shell hook to the credential-holding broker.</p>
+<p>Choose one collector for a deployment: the watch-plus-host-inbox sequence below,
+or the CLI's durable relay. Both run outside model turns. The broker has no
+webhook endpoint configuration or arbitrary command execution.</p>
 <h2 id="low-cost-observation-contract">Low-cost observation contract</h2>
 <p><code>event watch</code> starts at the current ledger head by default, without replaying
 existing records. <code>--replay</code> explicitly includes retained pending work;
@@ -69,7 +66,168 @@ past a reference that was not emitted and durably enqueued.</p>
 <p>The terminal stderr notice uses <code>emitted</code> and <code>checkpoint_stage: emitted</code>.
 It reports bytes written to stdout, not durable handoff or completed inference.
 Do not inject this notice, connection logs or health probes into model context.
-There is no host acknowledgment or durable host inbox inside this CLI.</p>
+The watch itself has no host acknowledgment or durable inbox; the separate relay
+owns those local collection/delivery checkpoints when selected.</p>
+<h2 id="durable-webhook-delivery">Durable webhook delivery</h2>
+<p>This implementation ports Channel v0.4.0's delivery and claim machinery. The
+<a href="https://github.com/AngelMsger/wecom-channel-cli/blob/main/docs/research.md#grok-bot-routine-webhook-review--2026-11-12">Grok contract review</a>
+records the official <a href="https://cursor.com/help/grok-bot/routines.md">routine webhook documentation</a>
+reviewed on 2026-11-12: POST JSON to the routine's fixed URL with its sender key
+as a Bearer credential; exactly HTTP 200 means accepted and started, not completed.
+It does not promise deduplication of <code>Idempotency-Key</code> or a completion callback.
+No live routine was invoked to validate this port.</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Success</th>
+<th>Recovery responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>explicit_ack</code> (default)</td>
+<td>2xx with exactly <code>{&quot;ack&quot;:&quot;BATCH_ID&quot;}</code></td>
+<td>Authenticated receiver atomically deduplicates and durably enqueues before ACK; retry the same immutable batch</td>
+</tr>
+<tr>
+<td><code>http_accepted</code> (opt-in)</td>
+<td>Exactly HTTP 200, without reading a completion body</td>
+<td>Sender saves acceptance receipt; network loss/cancellation or leftover <code>sending</code> becomes <code>unknown</code> and stops pending host-history reconciliation</td>
+</tr>
+</tbody>
+</table>
+<p>Other HTTP responses in the documented Grok contract mean no run started.
+Only transient rejection codes receive the configured bounded retry; redirects,
+authentication and protocol errors stop. <code>Idempotency-Key</code> is correlation evidence,
+not a receiver guarantee. The transport cannot silently replay a POST. Terminal
+errors and retry budgets persist across process restart.</p>
+<p>Provision private existing directories and protected JSON from
+<a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/deploy/relay.example.json">relay.example.json</a> or
+<a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/deploy/grok.example.json">grok.example.json</a>. Replace the example URL with the
+operator's actual routine URL. Inject the configured <code>token_env</code> through a protected
+service environment, never argv, payloads or instructions. Use an ordinary OS
+supervisor with <a href="https://github.com/AngelMsger/wecom-chat-cli/blob/main/deploy/wecom-chat-relay.service">the service example</a>; finite
+sessions resume the same state. Do not turn a terminal exit into a restart loop.</p>
+<pre><code class="language-sh">wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
+  --bot-id BOT_ID --deployment support relay run \
+  --config /etc/wecom-chat-relay/relay.json \
+  --state /var/lib/wecom-chat-relay/state.json --duration 24h --dry-run
+# Run the same command with --allow-writes instead of --dry-run after provisioning.
+wecom-chat-cli relay status --state /var/lib/wecom-chat-relay/state.json
+</code></pre>
+<p>Dry-run is offline: no token lookup, broker requests, state writes or locks.
+<code>--allow-writes</code> is local write intent, not additional broker authority. Fresh
+state starts quietly at the current head; <code>--replay</code> applies only at creation.
+Chat requires durable <code>--state</code>; it intentionally omits Channel's lossy ephemeral
+mode for pending conversation work. Subsequent runs use the saved opaque cursor. Destination, limits, scope or policy
+changes require reconciliation; do not delete the queue or restart with replay.
+The watch gains additive page metadata for binding/progress, with unchanged
+existing reference and cursor formats.</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Default / bounds</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>batch_window_seconds</code></td>
+<td>1 / 1–300</td>
+<td>Maximum wait from the oldest pending reference; full batches seal early</td>
+</tr>
+<tr>
+<td><code>batch_size</code></td>
+<td>50 / 1–100</td>
+<td>Maximum references per batch</td>
+</tr>
+<tr>
+<td><code>queue_limit</code></td>
+<td>1000 / batch size–10000</td>
+<td>Pending plus inflight references; full queues stop collection, not cursor safety</td>
+</tr>
+<tr>
+<td><code>timeout_seconds</code></td>
+<td>10 / 1–30</td>
+<td>One POST deadline</td>
+</tr>
+<tr>
+<td><code>retry_limit</code></td>
+<td>0 / 0–20</td>
+<td>Extra delivery/source attempts, persisted across restarts</td>
+</tr>
+<tr>
+<td><code>retry_base_seconds</code></td>
+<td>5 / 1–300</td>
+<td>Exponential backoff, capped at five minutes</td>
+</tr>
+<tr>
+<td><code>min_delivery_interval_seconds</code></td>
+<td>0 / 0–3600</td>
+<td>Persisted spacing between POST starts, including retries</td>
+</tr>
+</tbody>
+</table>
+<p>This is bounded batching plus pacing, not a sliding quiet-period timer. Grouping
+uses <code>(session_key, session_epoch)</code> and retains every message ID in order; it does
+not merge requests or grant one worker several messages. Broker admission filters
+remain authoritative. Sender collection/first-send checks and supervisor claims
+skip expired references. Attempted payloads stay immutable even if their deadlines
+pass. The trusted supervisor still rechecks eligibility through <code>task issue</code> before
+starting a conversation worker; reconnects, resets or earlier assignments can make
+a queued reference stale.</p>
+<p>Chat's default reply deadline is 120 seconds. The Grok example uses a one-second
+window and five-second spacing as an illustration, not a throughput guarantee.
+Tune against actual host quotas, shared account usage and reply latency; a backlog
+can expire before a grant is issued. Do not copy Channel's 30/60-second example
+without checking this budget. If the host cannot issue isolated single-event grants,
+use direct webhooks only as metadata notifications, not an autonomous reply service.</p>
+<h3 id="supervisor-claims-and-processing">Supervisor claims and processing</h3>
+<p>The wire batch is <code>{version,id,identity,coverage,threads}</code>. Each thread has
+<code>session_key</code>, <code>session_epoch</code> and <code>events</code>; each event preserves its <code>trust</code> and
+metadata-only <code>data</code>. Authenticate the inbound request and validate its expected
+source before using a private supervisor-owned file:</p>
+<pre><code class="language-sh">wecom-chat-cli relay claim --consumer-state /var/lib/chat-supervisor/claims.json \
+  --batch-file - --allow-writes &lt; /var/lib/chat-supervisor/incoming.json
+</code></pre>
+<p>Only <code>claimed: true</code> returns new, unexpired <code>work</code> plus a <code>claim_id</code>. Identical
+batches or events in overlapping batches do not return work again; changed
+metadata under an existing ID conflicts. An entirely stale new batch reports
+<code>expired</code>. Claims retain work for recovery and never expire automatically.
+Do not submit the filtered <code>work</code> as a new incoming batch. The trusted supervisor
+queues each reference, preserves per-session ordering, issues each event's grant
+and provisions it only to that worker. A busy session remains queued until
+issuance succeeds or its deadline expires. This command does not implement the
+host's job scheduler or authenticate the webhook by itself.</p>
+<pre><code class="language-sh">wecom-chat-cli relay consume --consumer-state /var/lib/chat-supervisor/claims.json \
+  --batch-id BATCH_ID --claim-id CLAIM_ID --result processed --allow-writes
+wecom-chat-cli relay status --consumer-state /var/lib/chat-supervisor/claims.json \
+  --batch-id BATCH_ID
+</code></pre>
+<p>Use <code>processed</code> only after the supervisor durably records outcomes for its work;
+<code>failed</code> is terminal and never authorizes replay. Status hides claim tokens.
+A lost claim response may have committed: inspect the protected claim and host
+job record rather than deleting claims. A batch accepted by the host is not a
+completed job. Receiver dedupe before model submission prevents duplicate jobs;
+claims inside an already-started routine cannot undo a paid wakeup.</p>
+<h3 id="reconcile-delivery-outcomes">Reconcile delivery outcomes</h3>
+<p>Stop the sender and inspect its exact saved batch plus the host run history:</p>
+<pre><code class="language-sh">wecom-chat-cli relay status --state /var/lib/wecom-chat-relay/state.json --batch-id BATCH_ID
+wecom-chat-cli relay resolve --state /var/lib/wecom-chat-relay/state.json \
+  --batch-id BATCH_ID --outcome accepted --evidence VERIFIED_RUN_REFERENCE --allow-writes
+</code></pre>
+<p>Use <code>not_accepted</code> only with host evidence that no run started; absence of a claim
+is insufficient. After repairing a rejection or resolving non-acceptance, explicitly
+use <code>relay run --retry-failed</code> with the original configuration/state. That flag cannot
+clear an unknown outcome. <code>accepted</code> preserves the original batch in a receipt.</p>
+<p>Sender and consumer snapshots are capped at 16 MiB; accepted receipts and batch
+claims at 10000, event dedupe at 20000. Capacity stops safely, without deleting
+unacknowledged responsibility. Archive only after reconciling pending work and the
+possible replay lifetime. Private files must be mode 0600 with trusted ancestors;
+symlinks and hard links are rejected. Files do not prove a service is alive. Health
+monitoring, backups and a supported supervisor remain ordinary host responsibilities.</p>
 <h2 id="authority-split">Authority split</h2>
 <p>A trusted deterministic supervisor/reviewer holds the operator socket. It may
 observe admitted events, issue/revoke grants and reset session epochs. Only an

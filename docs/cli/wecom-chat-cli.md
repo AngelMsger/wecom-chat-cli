@@ -25,6 +25,7 @@ wecom-chat-cli [flags]
 * [wecom-chat-cli config](wecom-chat-cli_config.md)	 - Inspect operator policy
 * [wecom-chat-cli event](wecom-chat-cli_event.md)	 - Operator-only event discovery and monitoring
 * [wecom-chat-cli memory](wecom-chat-cli_memory.md)	 - Manage scoped sender risk records
+* [wecom-chat-cli relay](wecom-chat-cli_relay.md)	 - Deliver pending references and track acceptance separately from processing
 * [wecom-chat-cli reply](wecom-chat-cli_reply.md)	 - Propose immutable replies and independently review sends
 * [wecom-chat-cli session](wecom-chat-cli_session.md)	 - Operator-controlled conversation fences
 * [wecom-chat-cli status](wecom-chat-cli_status.md)	 - Inspect broker connectivity and scope

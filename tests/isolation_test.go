@@ -40,7 +40,7 @@ func TestDifferentOSIdentities(t *testing.T) {
 	}
 	defer os.RemoveAll(root)
 	os.Chmod(root, 0755)
-	for _, d := range []string{"agent", "operator", "state"} {
+	for _, d := range []string{"agent", "operator", "state", "relay", "consumer"} {
 		if err = os.Mkdir(filepath.Join(root, d), 0700); err != nil {
 			t.Fatal(err)
 		}
@@ -52,6 +52,11 @@ func TestDifferentOSIdentities(t *testing.T) {
 	os.Chmod(agentDir, 0750)
 	secret := filepath.Join(root, "secret.env")
 	os.WriteFile(secret, []byte("synthetic-only"), 0600)
+	for _, name := range []string{"relay/config.json", "relay/state.json", "relay/secrets.env", "consumer/claims.json"} {
+		if err = os.WriteFile(filepath.Join(root, name), []byte("synthetic-private-state"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	policy := filepath.Join(root, "policy.json")
 	os.WriteFile(policy, []byte("{}"), 0644)
 	p := config.Example()
@@ -139,7 +144,7 @@ func TestWorkerProbe(t *testing.T) {
 	if err != nil || !strings.Contains(string(v), "alice private content") || strings.Contains(string(v), "bob private content") {
 		t.Fatal("worker task access violated")
 	}
-	for _, op := range []string{"event.list", "task.issue", "reply.approve", "memory.set"} {
+	for _, op := range []string{"event.list", "event.watch", "task.issue", "reply.approve", "memory.set"} {
 		if _, err := broker.Call(ctx, filepath.Join(root, "agent", "s"), broker.Request{Op: op, BotID: "bot", Deployment: "support", Token: token}); err == nil {
 			t.Fatal("worker obtained privileged operation")
 		}
@@ -148,7 +153,7 @@ func TestWorkerProbe(t *testing.T) {
 		c.Close()
 		t.Fatal("worker reached operator socket")
 	}
-	for _, path := range []string{filepath.Join(root, "state", "ledger.json"), filepath.Join(root, "secret.env")} {
+	for _, path := range []string{filepath.Join(root, "state", "ledger.json"), filepath.Join(root, "secret.env"), filepath.Join(root, "relay", "config.json"), filepath.Join(root, "relay", "state.json"), filepath.Join(root, "relay", "secrets.env"), filepath.Join(root, "consumer", "claims.json")} {
 		if _, err := os.ReadFile(path); err == nil {
 			t.Fatalf("worker read protected file: %s", path)
 		}

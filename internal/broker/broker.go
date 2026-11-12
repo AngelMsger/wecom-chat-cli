@@ -211,10 +211,21 @@ type Request struct {
 	Status            string `json:"status,omitempty"`
 	DryRun            bool   `json:"dry_run,omitempty"`
 }
+type WatchIdentity struct {
+	Bot        string `json:"bot_id"`
+	Deployment string `json:"deployment"`
+	Ledger     string `json:"ledger_id"`
+}
+type WatchMetadata struct {
+	Identity WatchIdentity `json:"identity"`
+	Binding  string        `json:"binding"`
+	After    int64         `json:"after_sequence"`
+}
 type Page struct {
-	Items   []any  `json:"items"`
-	Next    string `json:"next"`
-	HasMore bool   `json:"has_more"`
+	Watch   *WatchMetadata `json:"watch,omitempty"`
+	Items   []any          `json:"items"`
+	Next    string         `json:"next"`
+	HasMore bool           `json:"has_more"`
 }
 type cursor struct {
 	Ledger   string `json:"ledger"`
@@ -281,6 +292,9 @@ func (b *Broker) events(r Request, admin bool) (Page, error) {
 		seq = int64(len(d.Events))
 	}
 	page := Page{Items: []any{}, Next: b.feedCursor(d, seq, feed)}
+	if feed != "" {
+		page.Watch = &WatchMetadata{Identity: WatchIdentity{Bot: b.Policy.BotID, Deployment: b.Policy.Deployment, Ledger: d.ID}, Binding: b.Policy.Digest(), After: seq}
+	}
 	if r.Limit < 1 || r.Limit > 100 || r.WaitSeconds < 0 || r.WaitSeconds > 25 || r.WaitMillis < 0 || r.WaitMillis > 25000 || r.WaitSeconds != 0 && r.WaitMillis != 0 {
 		return page, e.New(e.CategoryUsage, "INVALID_BOUNDS", "Use limit 1..100 and either wait_seconds 0..25 or watch wait_millis 0..25000.")
 	}
@@ -291,6 +305,9 @@ func (b *Broker) events(r Request, admin bool) (Page, error) {
 	now := b.Now().Unix()
 	for _, ev := range d.Events[seq:] {
 		page.Next = b.feedCursor(d, ev.Sequence, feed)
+		if page.Watch != nil {
+			page.Watch.After = ev.Sequence
+		}
 		if ev.Received+int64(b.Policy.RetentionSeconds) <= now {
 			continue
 		}

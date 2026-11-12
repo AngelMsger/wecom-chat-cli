@@ -8,6 +8,7 @@ Available Commands:
   config      Inspect operator policy
   event       Operator-only event discovery and monitoring
   memory      Manage scoped sender risk records
+  relay       Deliver pending references and track acceptance separately from processing
   reply       Propose immutable replies and independently review sends
   session     Operator-controlled conversation fences
   status      Inspect broker connectivity and scope
@@ -214,6 +215,100 @@ Flags:
       --status string   blocked, quarantined, watch or clear
       --user string     Stable user ID from an event or reviewed operator policy
       --yes             Confirm the selected user&#39;s policy change
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-relay"><h2>wecom-chat-cli relay</h2><p>Deliver pending references and track acceptance separately from processing</p><pre><code>Usage:
+  wecom-chat-cli relay [flags]
+  wecom-chat-cli relay [command]
+
+Available Commands:
+  claim       Atomically claim a webhook batch in supervisor-owned state before processing
+  consume     Record a claimed batch as processed or failed; never send chat replies
+  resolve     Reconcile an unknown HTTP acceptance using verified host evidence
+  run         Trusted service: deliver nonempty metadata batches without a model
+  status      Read local delivery counts and timestamps; this does not probe process liveness
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path
+
+Use &#34;wecom-chat-cli relay [command] --help&#34; for more information about a command.</code></pre></section><section class="command-section" id="wecom-chat-cli-relay-claim"><h2>wecom-chat-cli relay claim</h2><p>Atomically claim a webhook batch in supervisor-owned state before processing</p><pre><code>Usage:
+  wecom-chat-cli relay claim [flags]
+
+Flags:
+      --batch-file string       Original relay batch JSON; - reads stdin (required)
+      --consumer-state string   Private supervisor-owned claim file, one per bot/deployment/ledger (required)
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-relay-consume"><h2>wecom-chat-cli relay consume</h2><p>Record a claimed batch as processed or failed; never send chat replies</p><pre><code>Usage:
+  wecom-chat-cli relay consume [flags]
+
+Flags:
+      --batch-id string         Batch ID returned by relay claim (required)
+      --claim-id string         Claim token returned only to the successful claimant (required)
+      --consumer-state string   Private supervisor-owned claim file (required)
+      --result string           processed or failed (required); neither permits automatic replay
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-relay-resolve"><h2>wecom-chat-cli relay resolve</h2><p>Reconcile an unknown HTTP acceptance using verified host evidence</p><pre><code>Usage:
+  wecom-chat-cli relay resolve [flags]
+
+Flags:
+      --batch-id string   Exact unknown batch ID (required)
+      --evidence string   Non-secret host run or operator reconciliation reference (required)
+      --outcome string    accepted or not_accepted, verified from host history (required)
+      --state string      Private sender-owned relay state (required)
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-relay-run"><h2>wecom-chat-cli relay run</h2><p>Trusted service: deliver nonempty metadata batches without a model</p><pre><code>Usage:
+  wecom-chat-cli relay run [flags]
+
+Flags:
+      --config string       Private fixed-destination relay JSON (required)
+      --duration duration   Maximum service session duration, up to 24h; resume the same state (default 5m0s)
+      --interval duration   Minimum local broker scan interval, 1s..1m (default 1s)
+      --max-batches int     Maximum acknowledged or HTTP-accepted batches in this session (default 1000)
+      --replay              Replay retained pending work only when creating new state; default starts quietly now
+      --retry-failed        Explicitly reset retry budgets after repair; never replays an unknown outcome
+      --state string        Durable JSON queue in an existing private service-owned directory (required)
+
+Global Flags:
+      --allow-writes        Permit this invocation&#39;s mutation; grants no server authority
+      --bot-id string       Expected bot ID from the operator
+      --deployment string   Expected deployment name from the operator
+      --dry-run             Validate a write without state changes or remote sends
+      --format string       Output: json or ndjson (trust fields cannot be removed) (default &#34;json&#34;)
+      --socket string       Absolute worker or trusted operator Unix socket path</code></pre></section><section class="command-section" id="wecom-chat-cli-relay-status"><h2>wecom-chat-cli relay status</h2><p>Read local delivery counts and timestamps; this does not probe process liveness</p><pre><code>Usage:
+  wecom-chat-cli relay status [flags]
+
+Flags:
+      --batch-id string         Inspect a specific retained delivery or supervisor claim
+      --consumer-state string   Private supervisor-owned processing state; mutually exclusive with --state
+      --state string            Private sender-owned relay state
 
 Global Flags:
       --allow-writes        Permit this invocation&#39;s mutation; grants no server authority

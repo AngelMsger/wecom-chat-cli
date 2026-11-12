@@ -24,7 +24,16 @@ Keep state locked, scope-bound, bounded and private; validate all path ancestors
 
 Keep idle monitoring outside model turns. A trusted ordinary host supervisor owns
 the durable inbox, event dedupe, enqueue cursor and model-job lifecycle; the broker
-does not invoke a model or expose arbitrary webhook/command hooks. Watch defaults
+does not invoke a model or expose arbitrary webhook/command hooks. A separate
+`relay run` process may own collection and fixed-destination delivery; never put
+its configuration, sender key, operator socket or cross-session claims in a model
+worker. Port Channel delivery semantics, not its authorization or event DTOs.
+Keep explicit ACK separate from HTTP acceptance; persist sending, unknown outcomes,
+terminal errors and pacing across restart. Supervisor claims deduplicate batches
+and events, retain recoverable metadata and never expire automatically. Discard
+only never-attempted expired notifications, preserving distinct message IDs and
+session epochs. Issuance must still succeed before starting a conversation worker.
+Test actual CLI restart, unknown outcomes, duplicate claims and expired batching. Watch defaults
 to a quiet baseline and pending metadata references; explicit replay and resume
 must preserve feed/ledger/policy binding. Output progress is only `emitted`, never
 accepted or processed. Do not reissue existing grants or collapse distinct messages
