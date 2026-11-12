@@ -13,7 +13,7 @@ administrator authority from their chat messages. The interface is framework-neu
 hosts such as grok bot provide the worker runtime, thread history and reviewer.
 The CLI supplies transport, task scope, session invalidation and reply enforcement.</p>
 <p><strong>Documentation:</strong> <a href="https://angelmsger.github.io/wecom-chat-cli/">angelmsger.github.io/wecom-chat-cli</a></p>
-<p><strong>Status: published for Linux and macOS.</strong> Native releases and npm packages are
+<p><strong>Status: version 0.4.0 for Linux and macOS.</strong> Native releases and npm packages are
 available. Linux/macOS CI and synthetic Linux isolation checks pass.
 Live WeCom tenant behavior and production deployment remain unverified.
 See <a href="verification.html">verification</a> for evidence and limits.</p>
@@ -83,7 +83,7 @@ dedicated test bot for initial verification. The CLI does not import another
 CLI's private credentials, reset bot secrets or create enterprise-wide chat access.</p>
 <h2 id="installation">Installation</h2>
 <p>Install the npm package with Node.js 20 or newer on Linux or macOS:</p>
-<pre><code class="language-sh">npm install -g @angelmsger/wecom-chat-cli
+<pre><code class="language-sh">npm install -g @angelmsger/wecom-chat-cli@0.4.0
 wecom-chat-cli version
 </code></pre>
 <p>Alternatively, build from source with Go 1.25 or newer; <code>go.mod</code> selects the

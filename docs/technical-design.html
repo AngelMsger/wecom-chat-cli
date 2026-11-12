@@ -122,7 +122,8 @@ and queue belong to a trusted service, independently of broker credentials and
 supervisor processing state. Its binding covers socket, bot, deployment and the
 entire delivery configuration. Pending references group by session plus epoch;
 no distinct message is collapsed. Never-attempted expired notifications can be
-removed with persisted counts; attempted payloads stay immutable. A claim stores
+removed with persisted counts; attempted payloads stay immutable across explicit
+retry-budget resets using a separate persisted lifetime attempt marker. A claim stores
 new event IDs and recoverable work atomically before returning any work, with
 non-expiring claims and explicit completion. The host still owns job scheduling,
 leases, token provisioning and recovery of ambiguous execution.</p>

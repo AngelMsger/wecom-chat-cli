@@ -91,8 +91,7 @@ func (s *relayApp) runCommand() *cobra.Command {
 			}
 			st.ScanFailures, st.NextScan = 0, 0
 			if st.Inflight != nil {
-				st.Inflight.Attempts, st.Inflight.NextAttempt = 0, 0
-				st.Inflight.Status, st.Inflight.HTTPStatus, st.Inflight.Failure = "", 0, ""
+				st.Inflight.ResetRetry()
 			}
 			if err = store.Save(st); err != nil {
 				return err
@@ -232,6 +231,7 @@ func pumpRelay(ctx context.Context, cfg relay.Config, scan broker.Request, st re
 				if cfg.Mode() == relay.HTTPAccepted && len(st.Receipts) >= 10000 {
 					return fail(e.New(e.CategoryRateLimit, "RELAY_RECEIPTS_FULL", "Delivery receipt capacity is exhausted. Archive and reconcile the saved state before provisioning a new relay."))
 				}
+				st.Inflight.Attempted = true
 				st.Inflight.Attempts++
 				if cfg.Mode() == relay.HTTPAccepted {
 					st.Inflight.Status, st.Inflight.LastAttempt, st.Inflight.HTTPStatus = "sending", time.Now().UnixMilli(), 0
@@ -262,7 +262,7 @@ func pumpRelay(ctx context.Context, cfg relay.Config, scan broker.Request, st re
 					}
 					continue
 				}
-				if !relay.Retryable(err) {
+				if !relay.Retryable(err) && e.Safe(err).Code != "RELAY_OUTCOME_UNKNOWN" {
 					st.Inflight.Failure = e.Safe(err).Code
 				}
 				if cfg.Mode() == relay.HTTPAccepted {

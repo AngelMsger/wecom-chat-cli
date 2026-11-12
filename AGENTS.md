@@ -31,7 +31,8 @@ worker. Port Channel delivery semantics, not its authorization or event DTOs.
 Keep explicit ACK separate from HTTP acceptance; persist sending, unknown outcomes,
 terminal errors and pacing across restart. Supervisor claims deduplicate batches
 and events, retain recoverable metadata and never expire automatically. Discard
-only never-attempted expired notifications, preserving distinct message IDs and
+only never-attempted expired notifications; preserve a lifetime attempt marker
+across retry-budget resets, distinct message IDs and
 session epochs. Issuance must still succeed before starting a conversation worker.
 Test actual CLI restart, unknown outcomes, duplicate claims and expired batching. Watch defaults
 to a quiet baseline and pending metadata references; explicit replay and resume
@@ -78,3 +79,6 @@ Keep first-release status factual. README badges belong only inside the marked
 GitHub-only block; generated HTML must keep using local assets. Preserve accurate
 role/deadline/security limits when reorganizing introductory material. Record a
 poster generation prompt and update the canonical docs/image.png, never a sibling image.
+
+Do not latch HTTP outcome uncertainty as a terminal delivery error: reconciliation
+of verified non-acceptance resumes the remaining budget without a generic reset.

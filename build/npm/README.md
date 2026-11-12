@@ -6,11 +6,17 @@ The npm package installs the native WeCom smart-bot CLI for Linux/macOS on amd64
 or arm64. The installer requires the matching GitHub Release's SHA-256 checksum.
 The runtime launcher never downloads code implicitly.
 
-**Prerelease package metadata only: no npm version has been published yet.**
-Build from [source](https://github.com/AngelMsger/wecom-chat-cli) until the first
-release is announced. Once published, install the exact released package version
-in a trusted setup session, then run `wecom-chat-cli auth guide` and
-`wecom-chat-cli config example`.
+Install the released package in a trusted setup session:
+
+```sh
+npm install -g @angelmsger/wecom-chat-cli@0.4.0
+wecom-chat-cli auth guide
+wecom-chat-cli config example
+```
+
+Version 0.4.0 adds durable metadata webhook delivery and supervisor-owned claims.
+A Grok HTTP acceptance is not processing completion; the trusted host still owns
+single-event task provisioning and independent reply review.
 
 Provision the broker, isolated worker and separate operator review path using the
 [operator guide](https://angelmsger.github.io/wecom-chat-cli/guide.html).

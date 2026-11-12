@@ -24,7 +24,7 @@ The CLI supplies transport, task scope, session invalidation and reply enforceme
 
 **Documentation:** [angelmsger.github.io/wecom-chat-cli](https://angelmsger.github.io/wecom-chat-cli/)
 
-**Status: published for Linux and macOS.** Native releases and npm packages are
+**Status: version 0.4.0 for Linux and macOS.** Native releases and npm packages are
 available. Linux/macOS CI and synthetic Linux isolation checks pass.
 Live WeCom tenant behavior and production deployment remain unverified.
 See [verification](docs/verification.md) for evidence and limits.
@@ -83,7 +83,7 @@ CLI's private credentials, reset bot secrets or create enterprise-wide chat acce
 Install the npm package with Node.js 20 or newer on Linux or macOS:
 
 ```sh
-npm install -g @angelmsger/wecom-chat-cli
+npm install -g @angelmsger/wecom-chat-cli@0.4.0
 wecom-chat-cli version
 ```
 

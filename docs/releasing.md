@@ -9,6 +9,12 @@ release adds quiet pending-event watches and requires the host cursor/output
 [migration](host-integration.md#migration-and-acceptance). Check the actual
 Release and npm version after every tag; Pages deployment alone is not a release.
 
+Version 0.4.0 adds the separate durable relay and supervisor claims, with companion
+Skill 0.4.0. The existing watch cursor/reference format and broker grant boundaries
+remain compatible. Operators provision a new private relay state and choose a
+quiet baseline or explicit replay; the relay never issues grants or approves replies.
+See [webhook delivery](host-integration.md#durable-webhook-delivery).
+
 ## Repository bootstrap
 
 The intended public repository is `AngelMsger/wecom-chat-cli`; the documentation

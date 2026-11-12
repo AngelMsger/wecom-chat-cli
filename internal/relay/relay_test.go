@@ -319,3 +319,52 @@ func TestPrivateStateRejectsHardLinks(t *testing.T) {
 		t.Fatal("hardlinked state accepted")
 	}
 }
+
+// A receiver may have accepted the first payload even when its ACK was lost.
+// Budget resets and later deadlines must not mint a new deduplication key.
+func TestRetryResetPreservesAttemptedPayloadAcrossExpiry(t *testing.T) {
+	for _, snapshot := range []string{"current", "legacy_attempts", "legacy_last_attempt"} {
+		for _, allExpired := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/all_expired=%t", snapshot, allExpired), func(t *testing.T) {
+				s, p, c := fixture()
+				now := time.Now()
+				first := p.Items[0].(Record)
+				first.Data.Expires = now.Unix() + 5
+				p.Items[0] = first
+				if err := s.Collect(p, c, now); err != nil {
+					t.Fatal(err)
+				}
+				if !s.Seal(c, now.Add(time.Second)) {
+					t.Fatal("batch not sealed")
+				}
+				original, _ := json.Marshal(s.Inflight.Batch)
+				switch snapshot {
+				case "current":
+					s.Inflight.Attempted, s.Inflight.Attempts = true, 1
+				case "legacy_attempts":
+					s.Inflight.Attempts = 1
+				case "legacy_last_attempt":
+					s.Inflight.LastAttempt = now.UnixMilli()
+				}
+				s.Inflight.ResetRetry()
+				// Persist and reload the reset before a second supervisor restart.
+				raw, _ := json.Marshal(s)
+				var resumed State
+				if err := json.Unmarshal(raw, &resumed); err != nil {
+					t.Fatal(err)
+				}
+				deadline := now.Add(6 * time.Second)
+				if allExpired {
+					deadline = now.Add(3 * time.Minute)
+				}
+				if resumed.Expire(deadline) || resumed.Inflight == nil {
+					t.Fatal("discarded attempted responsibility")
+				}
+				repeated, _ := json.Marshal(resumed.Inflight.Batch)
+				if string(original) != string(repeated) || resumed.Validate() != nil || resumed.Inflight.Attempts != 0 || !resumed.Inflight.Attempted {
+					t.Fatal("reset changed immutable retry or lost lifetime marker", resumed)
+				}
+			})
+		}
+	}
+}

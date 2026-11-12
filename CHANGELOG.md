@@ -2,11 +2,15 @@
 
 ## Unreleased
 
+## [0.4.0] - 2026-11-12
+
 - Add trusted-service `relay run/status/resolve` with a durable metadata outbox,
   quiet baseline or explicit replay, bounded session/epoch batching, deadline
   filtering, persisted pacing/retries and terminal delivery errors. Use the
   Channel explicit-ACK contract or opt-in Grok HTTP-200 acceptance; ambiguous
   requests stop until evidence-based reconciliation, never automatic replay.
+- Preserve attempted batch identity across retry-budget resets and deadlines;
+  resume verified HTTP rejection with its remaining retry budget.
 - Add supervisor-owned `relay claim/consume`: atomic batch/event deduplication,
   retained work for recovery and separate processed/failed status. Claims do not
   issue task grants, approve replies or give a model operator access. Update

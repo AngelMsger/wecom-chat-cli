@@ -175,7 +175,9 @@ uses <code>(session_key, session_epoch)</code> and retains every message ID in o
 not merge requests or grant one worker several messages. Broker admission filters
 remain authoritative. Sender collection/first-send checks and supervisor claims
 skip expired references. Attempted payloads stay immutable even if their deadlines
-pass. The trusted supervisor still rechecks eligibility through <code>task issue</code> before
+pass, including after an explicit retry-budget reset. A separate lifetime attempt
+marker prevents expiry from changing the original batch or its deduplication key.
+The trusted supervisor still rechecks eligibility through <code>task issue</code> before
 starting a conversation worker; reconnects, resets or earlier assignments can make
 a queued reference stale.</p>
 <p>Chat's default reply deadline is 120 seconds. The Grok example uses a one-second
@@ -219,9 +221,10 @@ wecom-chat-cli relay resolve --state /var/lib/wecom-chat-relay/state.json \
   --batch-id BATCH_ID --outcome accepted --evidence VERIFIED_RUN_REFERENCE --allow-writes
 </code></pre>
 <p>Use <code>not_accepted</code> only with host evidence that no run started; absence of a claim
-is insufficient. After repairing a rejection or resolving non-acceptance, explicitly
-use <code>relay run --retry-failed</code> with the original configuration/state. That flag cannot
-clear an unknown outcome. <code>accepted</code> preserves the original batch in a receipt.</p>
+is insufficient. After verified non-acceptance, resume with the original
+configuration/state and its remaining retry budget. Use <code>relay run --retry-failed</code>
+only after the budget is exhausted or a terminal rejection is repaired. That flag
+cannot clear an unknown outcome. <code>accepted</code> preserves the original batch in a receipt.</p>
 <p>Sender and consumer snapshots are capped at 16 MiB; accepted receipts and batch
 claims at 10000, event dedupe at 20000. Capacity stops safely, without deleting
 unacknowledged responsibility. Archive only after reconciling pending work and the

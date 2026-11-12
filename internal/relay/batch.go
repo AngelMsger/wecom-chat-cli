@@ -126,7 +126,7 @@ func (s *State) Expire(now time.Time) bool {
 	if len(s.Pending) == 0 {
 		s.PendingSince = 0
 	}
-	if s.Inflight != nil && s.Inflight.Attempts == 0 {
+	if s.Inflight != nil && !s.Inflight.WasAttempted() {
 		b := s.Inflight.Batch
 		b.Threads = nil
 		for _, t := range s.Inflight.Batch.Threads {

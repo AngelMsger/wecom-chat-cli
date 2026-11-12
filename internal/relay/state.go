@@ -18,12 +18,26 @@ const maxStateBytes = 16 << 20
 type Delivery struct {
 	Batch       Batch  `json:"batch"`
 	Attempts    int    `json:"attempts"`
+	Attempted   bool   `json:"attempted,omitempty"`
 	NextAttempt int64  `json:"next_attempt_at"`
 	Status      string `json:"status,omitempty"`
 	LastAttempt int64  `json:"last_attempt_at,omitempty"`
 	HTTPStatus  int    `json:"http_status,omitempty"`
 	Evidence    string `json:"evidence,omitempty"`
 	Failure     string `json:"terminal_error,omitempty"`
+}
+
+// WasAttempted includes snapshots written before the lifetime marker existed.
+func (d Delivery) WasAttempted() bool {
+	return d.Attempted || d.Attempts > 0 || d.LastAttempt > 0
+}
+
+// ResetRetry resets the budget, never the lifetime of the sealed payload.
+// The caller must reconcile sending/unknown outcomes before invoking it.
+func (d *Delivery) ResetRetry() {
+	d.Attempted = d.WasAttempted()
+	d.Attempts, d.NextAttempt = 0, 0
+	d.Status, d.HTTPStatus, d.Failure = "", 0, ""
 }
 
 type Receipt struct {

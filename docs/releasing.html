@@ -6,6 +6,11 @@ tag triggers native binaries, checksums and npm OIDC publication.</p>
 release adds quiet pending-event watches and requires the host cursor/output
 <a href="host-integration.html#migration-and-acceptance">migration</a>. Check the actual
 Release and npm version after every tag; Pages deployment alone is not a release.</p>
+<p>Version 0.4.0 adds the separate durable relay and supervisor claims, with companion
+Skill 0.4.0. The existing watch cursor/reference format and broker grant boundaries
+remain compatible. Operators provision a new private relay state and choose a
+quiet baseline or explicit replay; the relay never issues grants or approves replies.
+See <a href="host-integration.html#durable-webhook-delivery">webhook delivery</a>.</p>
 <h2 id="repository-bootstrap">Repository bootstrap</h2>
 <p>The intended public repository is <code>AngelMsger/wecom-chat-cli</code>; the documentation
 URL is <code>https://angelmsger.github.io/wecom-chat-cli/</code>. The bootstrap script uses the
