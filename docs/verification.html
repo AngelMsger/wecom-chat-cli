@@ -1,5 +1,25 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Verification for WeCom Chat CLI: scoped smart-bot conversations and independently reviewed replies."><meta name="theme-color" content="#f4f8fc"><meta property="og:image" content="https://angelmsger.github.io/wecom-chat-cli/image.png"><meta name="twitter:card" content="summary_large_image"><title>Verification — WeCom Chat CLI</title><link rel="canonical" href="https://angelmsger.github.io/wecom-chat-cli/verification.html"><link rel="icon" href="assets/mark.svg"><link rel="stylesheet" href="assets/site.css"><script src="assets/site.js" defer></script></head><body class="docs-page"><a class="skip" href="#main">Skip to content</a><header class="nav wrap"><a class="brand" href="index.html"><img src="assets/mark.svg" width="32" height="32" alt=""><span>WeCom Chat CLI</span></a><nav class="nav-links" aria-label="Main navigation"><a href="host-integration.html">Integration</a><a href="index.html#explore">Explore</a><a href="https://github.com/AngelMsger/wecom-chat-cli">GitHub ↗</a></nav></header><main id="main" class="wrap doc-layout"><aside class="doc-sidebar"><span class="eyebrow">DOCUMENTATION / PRERELEASE</span><a href="guide.html">Operator guide</a><a href="host-integration.html">Host integration</a><a href="cli/index.html">Command reference</a><a href="security.html">Security model</a><a href="technical-design.html">Technical design</a><a href="assessment.html">Assessment</a><a href="verification.html" aria-current="page">Verification</a><a href="releasing.html">Release guide</a></aside><article class="doc-article"><h1 id="verification-record">Verification record</h1>
 <p>Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and conversations in tests are synthetic.</p>
+<h2 id="relay-port-verification-2026-11-12">Relay port verification (2026-11-12)</h2>
+<p>The Channel-derived relay passed <code>GOWORK=off make lint test e2e build docs-check site-check release-tests</code>, all three npm installer tests, and <code>make vuln</code> with
+Go 1.27.4 (no vulnerabilities found). Linux race tests and real CLI processes used
+normal filesystem ownership outside the executor's mapped-root sandbox; production
+ancestor checks remain unchanged. Linux/macOS amd64/arm64 cross-builds passed;
+these are not new native macOS runtime results.</p>
+<p>The new real-process fixture covers a quiet baseline, duplicate callbacks, a lost
+HTTP response, restart and retry-reset refusal, evidence-based resolution, identical
+retry payloads, HTTP acceptance separated from completion, persistent consumer
+claims, duplicate claims without work or token, completion status and rejection
+of relay collection through the worker socket. Unit tests cover queue saturation,
+atomic persistence boundaries, malformed pages, unsafe paths/hard links, expired
+work, session/epoch separation, immutable attempted batches, pacing, retry budgets
+and terminal errors across restart in both delivery modes.</p>
+<p>The network-disabled Linux isolation fixture also passed, with a worker unable to
+read sender configuration/state/key or supervisor claims, reach the operator
+socket or enumerate the watch feed. It retained only its single-event grant.
+No production Grok routine, WeCom bot or live message was used. Host scheduling,
+grant provisioning, reviewer behavior and real AI usage remain deployment checks;
+local claim dedupe does not prove zero duplicate paid wakeups.</p>
 <h2 id="monitoring-change-verification-2026-11-10">Monitoring change verification (2026-11-10)</h2>
 <p>PR #4 performance follow-up: the original predicate benchmark for 100 pending
 events followed by 9,900 unrelated assigned events measured 1.01–1.50 s and about

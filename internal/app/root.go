@@ -39,6 +39,7 @@ func NewRootCmd() *cobra.Command {
 	emit := func(c *cobra.Command, v any) error {
 		return output.Emit(v, output.Options{Format: format, Writer: c.OutOrStdout()})
 	}
+	root.AddCommand((&relayApp{socket: &socket, bot: &botID, deployment: &deployment, writes: &writes, dry: &dryRun, emit: emit}).commands())
 	call := func(c *cobra.Command, r broker.Request, write bool) error {
 		if !config.ID(botID) || !config.ID(deployment) {
 			return e.New(e.CategoryUsage, "SCOPE_REQUIRED", "Supply --bot-id and --deployment from the broker operator.")

@@ -1,8 +1,9 @@
 # Integrating a host such as grok bot
 
-The host is **grok bot**; its concrete SDK was not supplied. The CLI therefore
-provides an enforced, framework-neutral task/review protocol. It does not create
-host threads, provision sandboxes or claim a specific grok bot plugin integration.
+The CLI supports Grok routine webhook notifications through a separate trusted
+`relay run` process, alongside the existing pull-based supervisor protocol.
+The host must still provide isolated workers, single-event token provisioning,
+thread history and independent review. A webhook does not provide those capabilities.
 
 ## What starts a model task
 
@@ -39,13 +40,9 @@ a job from ordinary code without first invoking a model. A cron prompt asking
 the model to run `event watch`, or a model repeatedly checking an idle process,
 still spends model turns. Zero idle stdout alone does not prove zero inference.
 
-Channel CLI's optional `relay run` uses the opposite delivery direction: an
-ordinary relay POSTs an immutable batch to a fixed authenticated receiver. That
-receiver deduplicates and durably enqueues before returning the exact batch ack;
-it then uses the host's real job API. A bare webhook or HTTP 2xx is not such an
-integration. Chat deliberately uses a host-owned local supervisor to preserve
-its operator-socket and short-lived-grant boundary; it adds no arbitrary URL or
-shell hook to the credential-holding broker.
+Choose one collector for a deployment: the watch-plus-host-inbox sequence below,
+or the CLI's durable relay. Both run outside model turns. The broker has no
+webhook endpoint configuration or arbitrary command execution.
 
 ## Low-cost observation contract
 
@@ -81,7 +78,142 @@ past a reference that was not emitted and durably enqueued.
 The terminal stderr notice uses `emitted` and `checkpoint_stage: emitted`.
 It reports bytes written to stdout, not durable handoff or completed inference.
 Do not inject this notice, connection logs or health probes into model context.
-There is no host acknowledgment or durable host inbox inside this CLI.
+The watch itself has no host acknowledgment or durable inbox; the separate relay
+owns those local collection/delivery checkpoints when selected.
+
+## Durable webhook delivery
+
+This implementation ports Channel v0.4.0's delivery and claim machinery. The
+[Grok contract review](https://github.com/AngelMsger/wecom-channel-cli/blob/main/docs/research.md#grok-bot-routine-webhook-review--2026-11-12)
+records the official [routine webhook documentation](https://cursor.com/help/grok-bot/routines.md)
+reviewed on 2026-11-12: POST JSON to the routine's fixed URL with its sender key
+as a Bearer credential; exactly HTTP 200 means accepted and started, not completed.
+It does not promise deduplication of `Idempotency-Key` or a completion callback.
+No live routine was invoked to validate this port.
+
+| Mode | Success | Recovery responsibility |
+| --- | --- | --- |
+| `explicit_ack` (default) | 2xx with exactly `{"ack":"BATCH_ID"}` | Authenticated receiver atomically deduplicates and durably enqueues before ACK; retry the same immutable batch |
+| `http_accepted` (opt-in) | Exactly HTTP 200, without reading a completion body | Sender saves acceptance receipt; network loss/cancellation or leftover `sending` becomes `unknown` and stops pending host-history reconciliation |
+
+Other HTTP responses in the documented Grok contract mean no run started.
+Only transient rejection codes receive the configured bounded retry; redirects,
+authentication and protocol errors stop. `Idempotency-Key` is correlation evidence,
+not a receiver guarantee. The transport cannot silently replay a POST. Terminal
+errors and retry budgets persist across process restart.
+
+Provision private existing directories and protected JSON from
+[relay.example.json](../deploy/relay.example.json) or
+[grok.example.json](../deploy/grok.example.json). Replace the example URL with the
+operator's actual routine URL. Inject the configured `token_env` through a protected
+service environment, never argv, payloads or instructions. Use an ordinary OS
+supervisor with [the service example](../deploy/wecom-chat-relay.service); finite
+sessions resume the same state. Do not turn a terminal exit into a restart loop.
+
+```sh
+wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock \
+  --bot-id BOT_ID --deployment support relay run \
+  --config /etc/wecom-chat-relay/relay.json \
+  --state /var/lib/wecom-chat-relay/state.json --duration 24h --dry-run
+# Run the same command with --allow-writes instead of --dry-run after provisioning.
+wecom-chat-cli relay status --state /var/lib/wecom-chat-relay/state.json
+```
+
+Dry-run is offline: no token lookup, broker requests, state writes or locks.
+`--allow-writes` is local write intent, not additional broker authority. Fresh
+state starts quietly at the current head; `--replay` applies only at creation.
+Chat requires durable `--state`; it intentionally omits Channel's lossy ephemeral
+mode for pending conversation work. Subsequent runs use the saved opaque cursor. Destination, limits, scope or policy
+changes require reconciliation; do not delete the queue or restart with replay.
+The watch gains additive page metadata for binding/progress, with unchanged
+existing reference and cursor formats.
+
+| Configuration | Default / bounds | Meaning |
+| --- | --- | --- |
+| `batch_window_seconds` | 1 / 1–300 | Maximum wait from the oldest pending reference; full batches seal early |
+| `batch_size` | 50 / 1–100 | Maximum references per batch |
+| `queue_limit` | 1000 / batch size–10000 | Pending plus inflight references; full queues stop collection, not cursor safety |
+| `timeout_seconds` | 10 / 1–30 | One POST deadline |
+| `retry_limit` | 0 / 0–20 | Extra delivery/source attempts, persisted across restarts |
+| `retry_base_seconds` | 5 / 1–300 | Exponential backoff, capped at five minutes |
+| `min_delivery_interval_seconds` | 0 / 0–3600 | Persisted spacing between POST starts, including retries |
+
+This is bounded batching plus pacing, not a sliding quiet-period timer. Grouping
+uses `(session_key, session_epoch)` and retains every message ID in order; it does
+not merge requests or grant one worker several messages. Broker admission filters
+remain authoritative. Sender collection/first-send checks and supervisor claims
+skip expired references. Attempted payloads stay immutable even if their deadlines
+pass, including after an explicit retry-budget reset. A separate lifetime attempt
+marker prevents expiry from changing the original batch or its deduplication key.
+The trusted supervisor still rechecks eligibility through `task issue` before
+starting a conversation worker; reconnects, resets or earlier assignments can make
+a queued reference stale.
+
+Chat's default reply deadline is 120 seconds. The Grok example uses a one-second
+window and five-second spacing as an illustration, not a throughput guarantee.
+Tune against actual host quotas, shared account usage and reply latency; a backlog
+can expire before a grant is issued. Do not copy Channel's 30/60-second example
+without checking this budget. If the host cannot issue isolated single-event grants,
+use direct webhooks only as metadata notifications, not an autonomous reply service.
+
+### Supervisor claims and processing
+
+The wire batch is `{version,id,identity,coverage,threads}`. Each thread has
+`session_key`, `session_epoch` and `events`; each event preserves its `trust` and
+metadata-only `data`. Authenticate the inbound request and validate its expected
+source before using a private supervisor-owned file:
+
+```sh
+wecom-chat-cli relay claim --consumer-state /var/lib/chat-supervisor/claims.json \
+  --batch-file - --allow-writes < /var/lib/chat-supervisor/incoming.json
+```
+
+Only `claimed: true` returns new, unexpired `work` plus a `claim_id`. Identical
+batches or events in overlapping batches do not return work again; changed
+metadata under an existing ID conflicts. An entirely stale new batch reports
+`expired`. Claims retain work for recovery and never expire automatically.
+Do not submit the filtered `work` as a new incoming batch. The trusted supervisor
+queues each reference, preserves per-session ordering, issues each event's grant
+and provisions it only to that worker. A busy session remains queued until
+issuance succeeds or its deadline expires. This command does not implement the
+host's job scheduler or authenticate the webhook by itself.
+
+```sh
+wecom-chat-cli relay consume --consumer-state /var/lib/chat-supervisor/claims.json \
+  --batch-id BATCH_ID --claim-id CLAIM_ID --result processed --allow-writes
+wecom-chat-cli relay status --consumer-state /var/lib/chat-supervisor/claims.json \
+  --batch-id BATCH_ID
+```
+
+Use `processed` only after the supervisor durably records outcomes for its work;
+`failed` is terminal and never authorizes replay. Status hides claim tokens.
+A lost claim response may have committed: inspect the protected claim and host
+job record rather than deleting claims. A batch accepted by the host is not a
+completed job. Receiver dedupe before model submission prevents duplicate jobs;
+claims inside an already-started routine cannot undo a paid wakeup.
+
+### Reconcile delivery outcomes
+
+Stop the sender and inspect its exact saved batch plus the host run history:
+
+```sh
+wecom-chat-cli relay status --state /var/lib/wecom-chat-relay/state.json --batch-id BATCH_ID
+wecom-chat-cli relay resolve --state /var/lib/wecom-chat-relay/state.json \
+  --batch-id BATCH_ID --outcome accepted --evidence VERIFIED_RUN_REFERENCE --allow-writes
+```
+
+Use `not_accepted` only with host evidence that no run started; absence of a claim
+is insufficient. After verified non-acceptance, resume with the original
+configuration/state and its remaining retry budget. Use `relay run --retry-failed`
+only after the budget is exhausted or a terminal rejection is repaired. That flag
+cannot clear an unknown outcome. `accepted` preserves the original batch in a receipt.
+
+Sender and consumer snapshots are capped at 16 MiB; accepted receipts and batch
+claims at 10000, event dedupe at 20000. Capacity stops safely, without deleting
+unacknowledged responsibility. Archive only after reconciling pending work and the
+possible replay lifetime. Private files must be mode 0600 with trusted ancestors;
+symlinks and hard links are rejected. Files do not prove a service is alive. Health
+monitoring, backups and a supported supervisor remain ordinary host responsibilities.
 
 ## Authority split
 

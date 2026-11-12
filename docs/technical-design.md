@@ -36,13 +36,17 @@ owns admission and socket roles; `tasks.go` owns capability/review enforcement.
 `internal/state` owns the locked atomic ledger and schema migration;
 `internal/securefs` checks every trusted path ancestor. `pkg/aibot` implements the
 small WebSocket subset; `pkg/safejson` rejects ambiguous/deep/invalid JSON.
+`internal/relay` owns an independent metadata outbox and supervisor claim ledger;
+its sender never creates task grants. `pkg/transport` re-exports the kit with
+redirect-free, single-attempt POST defaults.
 Filesystem/JSON helpers retain the Channel CLI's MIT attribution.
 
-The shared kit is pinned to v0.9.0. Its changed HTTP redirect/doctor path is not
-used by this product: upstream intake uses the dedicated WebSocket client, and
-local Unix-socket requests explicitly refuse redirects. Chat imports the kit's
-errors, output and argv normalization. The dependency upgrade was validated with
-`GOWORK=off` race/CLI tests and vulnerability scanning.
+The shared kit is pinned to v0.9.0. Chat uses its errors, output, argv normalization
+and HTTP transport for relay POSTs. Upstream intake retains the dedicated
+WebSocket client; local Unix-socket requests explicitly refuse redirects. Webhook
+POSTs disable request-body replay even with `Idempotency-Key`; only the persisted
+relay state machine can authorize another attempt. Go 1.27.4 includes the current
+net/http security fix.
 
 ## Transport
 
@@ -132,6 +136,23 @@ credentials. Default reads omit suppressed/blocked records; `--include-suppresse
 allows operator list inspection of redacted metadata. Audit/list and legacy watch
 cursors cannot be used in the pending feed. `event.get` is an operator audit
 read. Expired raw text is hidden even before physical maintenance erasure.
+
+Operator watch pages also expose `watch.identity` (bot, deployment, ledger),
+`watch.binding` (policy digest) and `watch.after_sequence`. Relay validates these
+alongside every reference before atomically saving the page cursor and outbox.
+Existing clients keep using opaque cursors; they need not decode their internals.
+
+The relay ports Channel's locked, fsynced atomic JSON snapshots, immutable batches,
+explicit ACK/HTTP acceptance modes, receipts, retries and pacing. Configuration
+and queue belong to a trusted service, independently of broker credentials and
+supervisor processing state. Its binding covers socket, bot, deployment and the
+entire delivery configuration. Pending references group by session plus epoch;
+no distinct message is collapsed. Never-attempted expired notifications can be
+removed with persisted counts; attempted payloads stay immutable across explicit
+retry-budget resets using a separate persisted lifetime attempt marker. A claim stores
+new event IDs and recoverable work atomically before returning any work, with
+non-expiring claims and explicit completion. The host still owns job scheduling,
+leases, token provisioning and recovery of ambiguous execution.
 
 Hosts must durably enqueue/deduplicate and maintain their own execution checkpoint.
 A watch cursor acknowledges emitted data, not successful model execution. Already

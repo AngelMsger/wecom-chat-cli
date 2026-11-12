@@ -19,7 +19,7 @@
   const copy = document.getElementById('copy-install');
   if (copy) copy.addEventListener('click', async () => {
     const note = document.getElementById('copy-status');
-    try { await navigator.clipboard.writeText(document.getElementById('install-code').textContent); note.textContent = 'Copied. Build in a trusted setup session.'; }
+    try { await navigator.clipboard.writeText(document.getElementById('install-code').textContent); note.textContent = 'Copied. Install in a trusted setup session.'; }
     catch { note.textContent = 'Select the commands above to copy them.'; }
   });
   const search = document.getElementById('command-search');

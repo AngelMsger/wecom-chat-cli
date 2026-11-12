@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "delivery_mode": "explicit_ack",
+  "webhook_url": "https://example.invalid/replace-with-trusted-receiver",
+  "token_env": "CHAT_RELAY_SENDER_KEY",
+  "batch_window_seconds": 1,
+  "batch_size": 50,
+  "queue_limit": 1000,
+  "timeout_seconds": 10,
+  "retry_limit": 0,
+  "retry_base_seconds": 5,
+  "min_delivery_interval_seconds": 0
+}

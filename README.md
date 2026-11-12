@@ -24,7 +24,7 @@ The CLI supplies transport, task scope, session invalidation and reply enforceme
 
 **Documentation:** [angelmsger.github.io/wecom-chat-cli](https://angelmsger.github.io/wecom-chat-cli/)
 
-**Status: published for Linux and macOS.** Native releases and npm packages are
+**Status: version 0.4.0 for Linux and macOS.** Native releases and npm packages are
 available. Linux/macOS CI and synthetic Linux isolation checks pass.
 Live WeCom tenant behavior and production deployment remain unverified.
 See [verification](docs/verification.md) for evidence and limits.
@@ -43,6 +43,11 @@ See [verification](docs/verification.md) for evidence and limits.
   operator can quarantine or block a person. A false report cannot ban future messages.
 - **Durable send outcomes** — persist the attempt before sending; interrupted or
   ambiguous outcomes are terminal and never automatically replayed.
+- **Event-driven host delivery** — a separate trusted relay batches pending references,
+  persists retries and request pacing, and supports explicit ACK or Grok routine
+  HTTP acceptance. Supervisor claims deduplicate before business processing;
+  [host integration](docs/host-integration.md#durable-webhook-delivery) explains
+  the single-event grant boundary and deadline limits.
 - **Agent-friendly interfaces** — JSON/NDJSON, fixed provenance, bounded cursors,
   structured errors and write previews follow the shared CLI conventions.
 - **Companion Skill** — a checked-in `wecom-chat` guide describes the worker
@@ -78,7 +83,7 @@ CLI's private credentials, reset bot secrets or create enterprise-wide chat acce
 Install the npm package with Node.js 20 or newer on Linux or macOS:
 
 ```sh
-npm install -g @angelmsger/wecom-chat-cli
+npm install -g @angelmsger/wecom-chat-cli@0.4.0
 wecom-chat-cli version
 ```
 
@@ -142,7 +147,9 @@ wecom-chat-cli broker serve --policy /etc/wecom-chat/broker.json
 
 The trusted supervisor reads the **operator** socket. Watches are bounded and
 observe local pushed events; they do not poll the enterprise message archive.
-Run the supervisor as ordinary code, with no model calls while idle. A fresh watch
+Run the supervisor as ordinary code, with no model calls while idle. For webhook
+delivery, use the separate [durable relay](docs/host-integration.md#durable-webhook-delivery)
+as the collection owner instead of a second watch loop. A fresh watch
 starts now and emits only references to live unassigned messages. Use `--replay`
 for an intentional pending backlog, or `--cursor` to resume after durable host
 enqueue. Reuse the cursor across bounded invocations, including idle ones.

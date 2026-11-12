@@ -101,6 +101,24 @@ unlink an existing endpoint automatically. Never remove the ledger to clear a
 send failure or full capacity. Keep logs free of raw content and credentials.
 Use encrypted storage and appropriate backup retention for personal data.
 
+## Relay service boundary
+
+`relay run` is a separate trusted process with operator-socket read access, a
+private fixed-destination configuration and a sender key from its service environment.
+The broker accepts no destination URL, webhook credential or command hook. The
+relay forwards only metadata references with the fixed trust envelope, never raw
+content, callback handles, task tokens or approval grants. Explicitly permit the
+configured endpoint in the service's egress policy; redirects and URL credentials
+are rejected. Do not place sender configuration or keys in routine instructions.
+
+Supervisor claim files may span sessions and must stay outside model workers.
+`relay claim` deduplication is not authentication, task issuance, or proof that a
+message remains eligible. A trusted receiver authenticates delivery and matches
+its configured source before claims; it issues one grant per still-live event in
+session order. An independent reviewer remains mandatory for free-text sends.
+Do not give a Grok routine the operator socket to make a direct webhook demo work.
+A shared computer or a different prompt is not isolation.
+
 ## Live acceptance gates
 
 Offline tests cannot attest a real host's sandbox or a tenant's API rollout.

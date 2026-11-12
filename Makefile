@@ -1,5 +1,5 @@
 GO ?= go
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.3.0-dev)
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.4.0-dev)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS = -s -w -X github.com/angelmsger/wecom-chat-cli/pkg/constants.Version=$(VERSION) -X github.com/angelmsger/wecom-chat-cli/pkg/constants.Commit=$(COMMIT) -X github.com/angelmsger/wecom-chat-cli/pkg/constants.BuildTime=$(BUILD_TIME)

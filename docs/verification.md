@@ -2,6 +2,31 @@
 
 Version: 0.2.0-dev. Date: 2026-11-09. Toolchain: Go 1.27.3. All credentials and conversations in tests are synthetic.
 
+## Relay port verification (2026-11-12)
+
+The Channel-derived relay passed `GOWORK=off make lint test e2e build docs-check
+site-check release-tests`, all three npm installer tests, and `make vuln` with
+Go 1.27.4 (no vulnerabilities found). Linux race tests and real CLI processes used
+normal filesystem ownership outside the executor's mapped-root sandbox; production
+ancestor checks remain unchanged. Linux/macOS amd64/arm64 cross-builds passed;
+these are not new native macOS runtime results.
+
+The new real-process fixture covers a quiet baseline, duplicate callbacks, a lost
+HTTP response, restart and retry-reset refusal, evidence-based resolution, identical
+retry payloads, HTTP acceptance separated from completion, persistent consumer
+claims, duplicate claims without work or token, completion status and rejection
+of relay collection through the worker socket. Unit tests cover queue saturation,
+atomic persistence boundaries, malformed pages, unsafe paths/hard links, expired
+work, session/epoch separation, immutable attempted batches, pacing, retry budgets
+and terminal errors across restart in both delivery modes.
+
+The network-disabled Linux isolation fixture also passed, with a worker unable to
+read sender configuration/state/key or supervisor claims, reach the operator
+socket or enumerate the watch feed. It retained only its single-event grant.
+No production Grok routine, WeCom bot or live message was used. Host scheduling,
+grant provisioning, reviewer behavior and real AI usage remain deployment checks;
+local claim dedupe does not prove zero duplicate paid wakeups.
+
 ## Monitoring change verification (2026-11-10)
 
 PR #4 performance follow-up: the original predicate benchmark for 100 pending

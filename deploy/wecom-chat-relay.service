@@ -1,0 +1,24 @@
+[Unit]
+Description=WeCom Chat metadata relay (trusted operator service)
+After=wecom-chat.service
+
+[Service]
+Type=simple
+# Match the broker operator socket owner; never use a model worker identity.
+User=wecom-chat
+Group=wecom-chat-agents
+UMask=0077
+EnvironmentFile=/etc/wecom-chat-relay/secrets.env
+ExecStart=/usr/local/bin/wecom-chat-cli --socket /run/wecom-chat-operator/bridge.sock --bot-id BOT_ID --deployment support relay run --config /etc/wecom-chat-relay/relay.json --state /var/lib/wecom-chat-relay/state.json --duration 24h --allow-writes
+# A normal finite session resumes; a terminal failure requires operator repair.
+Restart=on-success
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wecom-chat-relay
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
